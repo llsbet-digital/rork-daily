@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,20 +6,92 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Image,
   Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Search, Bookmark, Star } from 'lucide-react-native';
+import { Search, Bookmark, ChevronRight, Star } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 import { useApp } from '@/providers/AppProvider';
+import { Article } from '@/types';
+
+const CARD_COLORS = ['#E8DFF5', '#F5E6D3', '#E5F1F0', '#FCF4E9'] as const;
+
+function LibraryArticleCard({ article, onSave, index }: {
+  article: Article;
+  onSave: () => void;
+  index: number;
+}) {
+  const router = useRouter();
+  const { rateArticle } = useApp();
+  const bgColor = CARD_COLORS[index % CARD_COLORS.length];
+
+  const handlePress = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push({ pathname: '/article-reader', params: { id: article.id } } as any);
+  }, [article.id, router]);
+
+  return (
+    <TouchableOpacity
+      style={[styles.articleCard, { backgroundColor: bgColor }]}
+      activeOpacity={0.85}
+      onPress={handlePress}
+    >
+      <View style={styles.cardTopRow}>
+        <Text style={styles.articleCategory}>{article.category}</Text>
+        <View style={styles.cardTopRight}>
+          <TouchableOpacity
+            onPress={() => {
+              onSave();
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Bookmark
+              size={18}
+              color={Colors.primary}
+              fill={Colors.primary}
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <Text style={styles.articleTitle}>{article.title}</Text>
+
+      <View style={styles.ratingRow}>
+        {[1, 2, 3, 4, 5].map((star) => (
+          <TouchableOpacity
+            key={star}
+            onPress={() => {
+              rateArticle(article.id, star);
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }}
+            hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+          >
+            <Star
+              size={16}
+              color={article.rating && star <= article.rating ? Colors.primary : 'rgba(0,0,0,0.25)'}
+              fill={article.rating && star <= article.rating ? Colors.primary : 'transparent'}
+            />
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <View style={styles.cardBottom}>
+        <Text style={styles.articleTime}>{article.readTime} minutes to read</Text>
+        <View style={styles.arrowButton}>
+          <ChevronRight size={20} color={Colors.text} />
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
 
 export default function LibraryScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user, savedArticles, toggleSaveArticle, rateArticle } = useApp();
+  const { user, savedArticles, toggleSaveArticle } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
 
@@ -82,58 +154,13 @@ export default function LibraryScreen() {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
           >
-            {filteredArticles.map((article) => (
-              <View key={article.id} style={styles.articleCard}>
-                <View style={styles.articleContent}>
-                  <Text style={styles.articleCategory}>{article.category}</Text>
-                  <Text style={styles.articleTitle} numberOfLines={2}>{article.title}</Text>
-                  <Text style={styles.articleSummary} numberOfLines={2}>{article.summary}</Text>
-                  <View style={styles.articleMeta}>
-                    <Text style={styles.articleSource}>{article.source}</Text>
-                    <Text style={styles.metaDot}>·</Text>
-                    <Text style={styles.articleTime}>{article.readTime} min</Text>
-                  </View>
-                  <View style={styles.ratingRow}>
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <TouchableOpacity
-                        key={star}
-                        onPress={() => {
-                          rateArticle(article.id, star);
-                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        }}
-                        hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
-                      >
-                        <Star
-                          size={16}
-                          color={article.rating && star <= article.rating ? Colors.primary : Colors.textMuted}
-                          fill={article.rating && star <= article.rating ? Colors.primary : 'transparent'}
-                        />
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-                <View style={styles.articleImageContainer}>
-                  {article.imageUrl ? (
-                    <Image source={{ uri: article.imageUrl }} style={styles.articleImage} />
-                  ) : (
-                    <View style={[styles.articleImage, styles.articleImagePlaceholder]} />
-                  )}
-                  <TouchableOpacity
-                    style={styles.saveButton}
-                    onPress={() => {
-                      toggleSaveArticle(article.id);
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                    }}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <Bookmark
-                      size={16}
-                      color={Colors.primary}
-                      fill={Colors.primary}
-                    />
-                  </TouchableOpacity>
-                </View>
-              </View>
+            {filteredArticles.map((article, idx) => (
+              <LibraryArticleCard
+                key={article.id}
+                article={article}
+                index={idx}
+                onSave={() => toggleSaveArticle(article.id)}
+              />
             ))}
           </ScrollView>
         )}
@@ -218,77 +245,59 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
     paddingBottom: 40,
-    gap: 12,
+    gap: 16,
   },
   articleCard: {
+    borderRadius: 20,
+    padding: 22,
+    minHeight: 170,
+  },
+  cardTopRow: {
     flexDirection: 'row',
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    gap: 12,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  articleContent: {
-    flex: 1,
-  },
-  articleCategory: {
-    fontSize: 11,
-    fontWeight: '700' as const,
-    color: Colors.primary,
-    letterSpacing: 1,
-    marginBottom: 6,
-  },
-  articleTitle: {
-    fontSize: 17,
-    fontWeight: '700' as const,
-    color: Colors.text,
-    marginBottom: 6,
-    lineHeight: 22,
-  },
-  articleSummary: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    lineHeight: 19,
-    marginBottom: 8,
-  },
-  articleMeta: {
+  cardTopRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginBottom: 8,
+    gap: 10,
   },
-  articleSource: {
-    fontSize: 12,
-    color: Colors.textSecondary,
+  articleCategory: {
+    fontSize: 14,
     fontWeight: '500' as const,
+    color: 'rgba(0,0,0,0.55)',
   },
-  metaDot: {
-    fontSize: 12,
-    color: Colors.textMuted,
-  },
-  articleTime: {
-    fontSize: 12,
-    color: Colors.textMuted,
+  articleTitle: {
+    fontSize: 24,
+    fontWeight: '700' as const,
+    color: Colors.text,
+    marginBottom: 12,
+    lineHeight: 30,
+    letterSpacing: -0.3,
   },
   ratingRow: {
     flexDirection: 'row',
     gap: 6,
+    marginBottom: 16,
   },
-  articleImageContainer: {
+  cardBottom: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 8,
+    marginTop: 'auto' as const,
   },
-  articleImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 12,
-    backgroundColor: Colors.inputBackground,
+  articleTime: {
+    fontSize: 13,
+    color: 'rgba(0,0,0,0.5)',
+    fontWeight: '500' as const,
   },
-  articleImagePlaceholder: {
-    backgroundColor: Colors.primaryLight,
-  },
-  saveButton: {
-    padding: 4,
+  arrowButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
