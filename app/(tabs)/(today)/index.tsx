@@ -7,8 +7,6 @@ import {
   TouchableOpacity,
   Image,
   Animated,
-  ActivityIndicator,
-  RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -150,10 +148,8 @@ export default function TodayScreen() {
     toggleSaveArticle,
     rateArticle,
     articlesLoading,
-    refreshArticles,
   } = useApp();
 
-  const [refreshing, setRefreshing] = useState(false);
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -163,15 +159,6 @@ export default function TodayScreen() {
       useNativeDriver: true,
     }).start();
   }, []);
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      await refreshArticles();
-    } finally {
-      setRefreshing(false);
-    }
-  }, [refreshArticles]);
 
   const getGreeting = useCallback(() => {
     const hour = new Date().getHours();
@@ -209,14 +196,6 @@ export default function TodayScreen() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={Colors.primary}
-              colors={[Colors.primary]}
-            />
-          }
         >
           <View style={styles.progressSection}>
             <View style={styles.progressHeader}>

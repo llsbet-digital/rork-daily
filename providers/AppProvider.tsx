@@ -10,6 +10,7 @@ import { configureRevenueCat, getCustomerInfo, checkEntitlement, loginRC, logout
 
 const STORAGE_KEYS = {
   ARTICLES: 'daily_articles',
+  SAVED_ARTICLES: 'saved_articles_library',
 } as const;
 
 function profileToUser(profile: UserProfile): User {
@@ -32,6 +33,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
   const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
   const [articles, setArticles] = useState<Article[]>([]);
+  const [libraryArticles, setLibraryArticles] = useState<Article[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isOnboarded, setIsOnboarded] = useState<boolean>(false);
   const [todayReadsCompleted, setTodayReadsCompleted] = useState<number>(0);
@@ -156,6 +158,32 @@ export const [AppProvider, useApp] = createContextHook(() => {
       setIsLoading(false);
     }
   }, [profileQuery.data, profileQuery.isError, profileQuery.isLoading, session, isNewSignUp, customerInfoQuery.data]);
+
+  const loadSavedArticles = useCallback(async () => {
+    try {
+      const stored = await AsyncStorage.getItem(STORAGE_KEYS.SAVED_ARTICLES);
+      if (stored) {
+        const parsed = JSON.parse(stored) as Article[];
+        setLibraryArticles(parsed);
+        console.log('[App] Loaded', parsed.length, 'saved articles from library');
+      }
+    } catch (e) {
+      console.log('[App] Failed to load saved articles:', e);
+    }
+  }, []);
+
+  const persistSavedArticles = useCallback(async (saved: Article[]) => {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.SAVED_ARTICLES, JSON.stringify(saved));
+      console.log('[App] Persisted', saved.length, 'articles to library');
+    } catch (e) {
+      console.log('[App] Failed to persist saved articles:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadSavedArticles();
+  }, [loadSavedArticles]);
 
   const loadArticlesForUser = useCallback(async (interests: string[], isPremium: boolean) => {
     if (!interests || interests.length === 0) return;
@@ -293,13 +321,17 @@ export const [AppProvider, useApp] = createContextHook(() => {
   }, [session, refreshCustomerInfo]);
 
   const rateArticle = useCallback((articleId: string, rating: number) => {
-    setArticles(prev => {
-      const updated = prev.map(a =>
-        a.id === articleId ? { ...a, rating } : a
-      );
+    setArticles(prev =>
+      prev.map(a => a.id === articleId ? { ...a, rating } : a)
+    );
+    setLibraryArticles(prev => {
+      const exists = prev.find(a => a.id === articleId);
+      if (!exists) return prev;
+      const updated = prev.map(a => a.id === articleId ? { ...a, rating } : a);
+      persistSavedArticles(updated);
       return updated;
     });
-  }, []);
+  }, [persistSavedArticles]);
 
   const markArticleRead = useCallback((articleId: string) => {
     setArticles(prev => {
@@ -324,27 +356,42 @@ export const [AppProvider, useApp] = createContextHook(() => {
   }, [user, session]);
 
   const toggleSaveArticle = useCallback((articleId: string) => {
-    setArticles(prev => {
-      const article = prev.find(a => a.id === articleId);
-      if (!article) return prev;
+    const articleFromDaily = articles.find(a => a.id === articleId);
+    const articleFromLibrary = libraryArticles.find(a => a.id === articleId);
+    const article = articleFromDaily || articleFromLibrary;
+    if (!article) return;
 
-      if (!article.isSaved && todaySavesUsed >= maxDailySaves) {
-        return prev;
-      }
+    const currentlySaved = articleFromDaily ? articleFromDaily.isSaved : !!articleFromLibrary;
 
-      const updated = prev.map(a =>
-        a.id === articleId ? { ...a, isSaved: !a.isSaved } : a
+    if (!currentlySaved && todaySavesUsed >= maxDailySaves) {
+      return;
+    }
+
+    if (articleFromDaily) {
+      setArticles(prev =>
+        prev.map(a => a.id === articleId ? { ...a, isSaved: !currentlySaved } : a)
       );
+    }
 
-      if (!article.isSaved) {
-        setTodaySavesUsed(p => p + 1);
-      } else {
-        setTodaySavesUsed(p => Math.max(0, p - 1));
-      }
-
-      return updated;
-    });
-  }, [todaySavesUsed, maxDailySaves]);
+    if (!currentlySaved) {
+      setTodaySavesUsed(p => p + 1);
+      const savedArticle = { ...article, isSaved: true };
+      setLibraryArticles(prev => {
+        const exists = prev.find(a => a.id === articleId);
+        if (exists) return prev;
+        const updated = [savedArticle, ...prev];
+        persistSavedArticles(updated);
+        return updated;
+      });
+    } else {
+      setTodaySavesUsed(p => Math.max(0, p - 1));
+      setLibraryArticles(prev => {
+        const updated = prev.filter(a => a.id !== articleId);
+        persistSavedArticles(updated);
+        return updated;
+      });
+    }
+  }, [articles, libraryArticles, todaySavesUsed, maxDailySaves, persistSavedArticles]);
 
   const updateInterests = useCallback(async (interests: string[]) => {
     if (!user || !session?.user?.id) return;
@@ -364,13 +411,9 @@ export const [AppProvider, useApp] = createContextHook(() => {
     queryClient.invalidateQueries({ queryKey: ['profile'] });
   }, [user, session, queryClient, loadArticlesForUser]);
 
-  const refreshArticles = useCallback(async () => {
-    if (!user || user.interests.length === 0) return;
-    await clearArticleCache();
-    await loadArticlesForUser(user.interests, user.isPremium);
-  }, [user, loadArticlesForUser]);
 
-  const savedArticles = useMemo(() => articles.filter(a => a.isSaved), [articles]);
+
+  const savedArticles = useMemo(() => libraryArticles, [libraryArticles]);
   const dailyArticles = useMemo(() => articles.slice(0, maxDailyReads), [articles, maxDailyReads]);
 
   return {
@@ -396,7 +439,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     markArticleRead,
     toggleSaveArticle,
     updateInterests,
-    refreshArticles,
+
     isSigningUp: false,
     isSigningIn: false,
   };
