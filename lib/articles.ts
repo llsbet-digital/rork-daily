@@ -164,6 +164,26 @@ export async function fetchDailyArticles(interests: string[], count: number): Pr
   return articles;
 }
 
+export async function fetchAdditionalArticles(interests: string[], additionalCount: number, existingArticles: Article[]): Promise<Article[]> {
+  console.log('[Articles] Fetching', additionalCount, 'additional articles for upgrade');
+  try {
+    const newArticles = await searchArticlesWithOpenAI(interests, additionalCount);
+    const today = getTodayDateString();
+    const reindexed = newArticles.map((a, i) => ({
+      ...a,
+      id: `article-${today}-extra-${i}`,
+    }));
+    const combined = [...existingArticles, ...reindexed];
+    await AsyncStorage.setItem(DAILY_ARTICLES_KEY, JSON.stringify(combined));
+    await AsyncStorage.setItem(DAILY_DATE_KEY, today);
+    console.log('[Articles] Cached', combined.length, 'total articles after upgrade');
+    return reindexed;
+  } catch (e) {
+    console.log('[Articles] Failed to fetch additional articles:', e);
+    return [];
+  }
+}
+
 export async function clearArticleCache(): Promise<void> {
   await AsyncStorage.removeItem(DAILY_ARTICLES_KEY);
   await AsyncStorage.removeItem(DAILY_DATE_KEY);

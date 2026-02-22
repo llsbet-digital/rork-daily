@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import createContextHook from '@nkzw/create-context-hook';
 import { User, Article } from '@/types';
-import { fetchDailyArticles, clearArticleCache } from '@/lib/articles';
+import { fetchDailyArticles, fetchAdditionalArticles, clearArticleCache } from '@/lib/articles';
 import { supabase, UserProfile } from '@/lib/supabase';
 import { Session } from '@supabase/supabase-js';
 import { configureRevenueCat, getCustomerInfo, checkEntitlement, loginRC, logoutRC } from '@/lib/revenuecat';
@@ -187,7 +187,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
   const loadArticlesForUser = useCallback(async (interests: string[], isPremium: boolean) => {
     if (!interests || interests.length === 0) return;
-    const count = isPremium ? 5 : 3;
+    const count = isPremium ? 7 : 3;
     setArticlesLoading(true);
     try {
       const fetched = await fetchDailyArticles(interests, count);
@@ -207,8 +207,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
     }
   }, [user?.id, isOnboarded]);
 
-  const maxDailyReads = user?.isPremium ? 5 : 3;
-  const maxDailySaves = user?.isPremium ? 3 : 1;
+  const maxDailyReads = user?.isPremium ? 7 : 3;
+  const maxDailySaves = 3;
 
   const signUp = useCallback(async (email: string, password: string, name: string) => {
     console.log('[App] Signing up:', email);
@@ -311,6 +311,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     refreshCustomerInfo();
     const info = await getCustomerInfo();
     const isPremium = checkEntitlement(info);
+    const wasPremium = user?.isPremium ?? false;
     setUser(prev => prev ? { ...prev, isPremium } : null);
     if (session?.user?.id) {
       await supabase
@@ -318,7 +319,14 @@ export const [AppProvider, useApp] = createContextHook(() => {
         .update({ is_premium: isPremium })
         .eq('id', session.user.id);
     }
-  }, [session, refreshCustomerInfo]);
+    if (isPremium && !wasPremium && user?.interests && user.interests.length > 0) {
+      console.log('[App] User upgraded to premium, fetching 4 additional articles');
+      const additional = await fetchAdditionalArticles(user.interests, 4, articles);
+      if (additional.length > 0) {
+        setArticles(prev => [...prev, ...additional]);
+      }
+    }
+  }, [session, refreshCustomerInfo, user, articles]);
 
   const rateArticle = useCallback((articleId: string, rating: number) => {
     setArticles(prev =>
