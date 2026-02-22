@@ -442,31 +442,60 @@ export const [AppProvider, useApp] = createContextHook(() => {
       return;
     }
 
+    const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
+    if (!apiKey) {
+      console.log('[App] OpenAI API key not configured');
+      return;
+    }
+
     setGeneratingInsightId(articleId);
     try {
-      const { generateObject } = await import('@rork-ai/toolkit-sdk');
-      const { z } = await import('zod');
-
-      const result = await generateObject({
-        messages: [
-          {
-            role: 'user',
-            content: `Analyze this article and provide a concise summary and key takeaways.
+      console.log('[App] Generating insight via OpenAI for:', article.title);
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a helpful assistant that analyzes articles. Always respond with valid JSON matching the requested format.',
+            },
+            {
+              role: 'user',
+              content: `Analyze this article and provide a concise summary and key takeaways.
 
 Title: ${article.title}
 Category: ${article.category}
 Content: ${article.content || article.summary}
 
-Provide:
-1. A 2-3 sentence summary capturing the core message
-2. 3-4 key takeaways or insights that are actionable or thought-provoking`,
-          },
-        ],
-        schema: z.object({
-          summary: z.string().describe('A concise 2-3 sentence summary'),
-          keyTakeaways: z.array(z.string()).describe('3-4 key takeaways'),
+Respond in this exact JSON format:
+{"summary": "A concise 2-3 sentence summary", "keyTakeaways": ["takeaway 1", "takeaway 2", "takeaway 3"]}`,
+            },
+          ],
+          response_format: { type: 'json_object' },
+          temperature: 0.7,
+          max_tokens: 500,
         }),
       });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log('[App] OpenAI API error:', response.status, errorText);
+        throw new Error(`OpenAI API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content;
+      if (!content) {
+        throw new Error('No content in OpenAI response');
+      }
+
+      const result = JSON.parse(content) as { summary: string; keyTakeaways: string[] };
+      console.log('[App] OpenAI response parsed successfully');
 
       const newInsight: ArticleInsight = {
         id: `insight_${Date.now()}`,
@@ -474,7 +503,7 @@ Provide:
         articleTitle: article.title,
         category: article.category,
         summary: result.summary,
-        keyTakeaways: result.keyTakeaways,
+        keyTakeaways: result.keyTakeaways || [],
         generatedAt: new Date().toISOString(),
       };
 
