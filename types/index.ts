@@ -19,6 +19,7 @@ export interface Article {
   readTime: number;
   publishedAt: string;
   imageUrl: string;
+  content: string;
   url: string;
   isRead: boolean;
   feedback: 'up' | 'down' | null;

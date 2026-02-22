@@ -24,11 +24,12 @@ For each article, provide:
 - url: the real, working URL to the article
 - source: the publication name (e.g. TechCrunch, BBC, The Verge)
 - summary: a 1-2 sentence summary
+- content: a detailed, well-written article body (4-8 paragraphs). Write it as a proper article with rich detail, analysis, and insights. Use line breaks between paragraphs.
 - category: the topic in UPPERCASE
 - readTime: estimated reading time in minutes (3-15)
 
 Respond with ONLY a valid JSON object in this exact format, no markdown or extra text:
-{"articles":[{"title":"...","url":"https://...","source":"...","summary":"...","category":"TOPIC","readTime":5}]}`;
+{"articles":[{"title":"...","url":"https://...","source":"...","summary":"...","content":"...","category":"TOPIC","readTime":5}]}`;
 
   console.log('[Articles] Calling OpenAI Responses API with web search...');
 
@@ -83,6 +84,7 @@ Respond with ONLY a valid JSON object in this exact format, no markdown or extra
   let data: { articles: Array<{
     title: string;
     summary: string;
+    content: string;
     category: string;
     source: string;
     readTime: number;
@@ -117,6 +119,7 @@ Respond with ONLY a valid JSON object in this exact format, no markdown or extra
       id: `article-${today}-${i}`,
       title: a.title,
       summary: a.summary || '',
+      content: a.content || a.summary || '',
       category: (a.category || interests[i % interests.length] || 'NEWS').toUpperCase(),
       source: a.source || 'Web',
       readTime: a.readTime || 5,

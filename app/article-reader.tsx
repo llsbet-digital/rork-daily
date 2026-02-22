@@ -72,6 +72,10 @@ export default function ArticleReaderScreen() {
     );
   }
 
+  const contentParagraphs = (article.content || article.summary || '')
+    .split('\n')
+    .filter(p => p.trim().length > 0);
+
   return (
     <View style={styles.container}>
       <Animated.View style={[styles.inner, { opacity: fadeAnim }]}>
@@ -96,15 +100,6 @@ export default function ArticleReaderScreen() {
                 fill={article.isSaved ? Colors.primary : 'transparent'}
               />
             </TouchableOpacity>
-            {article.url && article.url !== '#' && (
-              <TouchableOpacity
-                style={styles.headerBtn}
-                onPress={handleOpenExternal}
-                activeOpacity={0.7}
-              >
-                <ExternalLink size={20} color={Colors.textSecondary} />
-              </TouchableOpacity>
-            )}
           </View>
         </View>
 
@@ -137,17 +132,18 @@ export default function ArticleReaderScreen() {
 
             <View style={styles.divider} />
 
-            <Text style={styles.summaryLabel}>Summary</Text>
-            <Text style={styles.summary}>{article.summary}</Text>
+            {contentParagraphs.map((paragraph, idx) => (
+              <Text key={idx} style={styles.paragraph}>{paragraph}</Text>
+            ))}
 
             {article.url && article.url !== '#' && (
               <TouchableOpacity
-                style={styles.readFullBtn}
+                style={styles.sourceLink}
                 onPress={handleOpenExternal}
                 activeOpacity={0.7}
               >
-                <ExternalLink size={16} color={Colors.white} />
-                <Text style={styles.readFullText}>Read full article</Text>
+                <ExternalLink size={14} color={Colors.primary} />
+                <Text style={styles.sourceLinkText}>View original source</Text>
               </TouchableOpacity>
             )}
 
@@ -286,36 +282,28 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: Colors.border,
-    marginBottom: 20,
+    marginBottom: 24,
   },
-  summaryLabel: {
-    fontSize: 14,
-    fontWeight: '700' as const,
-    color: Colors.textSecondary,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase' as const,
-    marginBottom: 12,
-  },
-  summary: {
+  paragraph: {
     fontSize: 17,
     color: Colors.text,
     lineHeight: 28,
-    marginBottom: 24,
+    marginBottom: 18,
   },
-  readFullBtn: {
+  sourceLink: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: Colors.primary,
+    gap: 6,
     paddingVertical: 14,
-    borderRadius: 12,
-    marginBottom: 28,
+    marginBottom: 24,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    marginTop: 8,
   },
-  readFullText: {
-    fontSize: 15,
-    fontWeight: '600' as const,
-    color: Colors.white,
+  sourceLinkText: {
+    fontSize: 14,
+    fontWeight: '500' as const,
+    color: Colors.primary,
   },
   ratingSection: {
     alignItems: 'center',
