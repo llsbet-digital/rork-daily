@@ -50,6 +50,7 @@ function RootLayoutNav() {
       <Stack.Screen name="settings" options={{ presentation: "modal" }} />
       <Stack.Screen name="premium" options={{ presentation: "modal" }} />
       <Stack.Screen name="article-reader" options={{ presentation: "modal", headerShown: false, gestureEnabled: true }} />
+      <Stack.Screen name="manage-interests" options={{ presentation: "modal" }} />
     </Stack>
   );
 }

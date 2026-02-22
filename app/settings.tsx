@@ -114,7 +114,7 @@ export default function SettingsScreen() {
         <View style={styles.sectionCard}>
           <TouchableOpacity
             style={styles.settingRow}
-            onPress={() => router.push('/onboarding-interests' as any)}
+            onPress={() => router.push('/manage-interests' as any)}
             activeOpacity={0.7}
           >
             <View style={styles.settingLeft}>
