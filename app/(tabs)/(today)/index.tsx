@@ -218,7 +218,7 @@ export default function TodayScreen() {
           >
             <Text style={styles.avatarText}>{initials}</Text>
           </TouchableOpacity>
-          <Text style={styles.topBarTitle}>Today</Text>
+          <View style={{ flex: 1 }} />
           <TouchableOpacity
             style={styles.crownButton}
             onPress={() => router.push('/premium' as any)}
