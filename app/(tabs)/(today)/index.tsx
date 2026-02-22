@@ -1,29 +1,31 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
   Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Crown, Bookmark, Star } from 'lucide-react-native';
+import { Crown, ChevronRight, Bookmark } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 
 import Colors from '@/constants/colors';
 import { useApp } from '@/providers/AppProvider';
 import { Article } from '@/types';
 
-function ArticleCard({ article, onSave, onRate, onRead }: {
+const CARD_COLORS = ['#E8DFF5', '#F5E6D3', '#E5F1F0', '#FCF4E9'] as const;
+
+function ArticleCard({ article, onSave, onRead, index }: {
   article: Article;
   onSave: () => void;
-  onRate: (rating: number) => void;
   onRead: () => void;
+  index: number;
 }) {
   const router = useRouter();
+  const bgColor = CARD_COLORS[index % CARD_COLORS.length];
 
   const handlePress = useCallback(() => {
     onRead();
@@ -33,74 +35,55 @@ function ArticleCard({ article, onSave, onRate, onRead }: {
 
   return (
     <TouchableOpacity
-      style={styles.articleCard}
-      activeOpacity={0.7}
+      style={[styles.articleCard, { backgroundColor: bgColor }]}
+      activeOpacity={0.85}
       onPress={handlePress}
     >
-      <View style={styles.articleContent}>
+      <View style={styles.cardTopRow}>
         <Text style={styles.articleCategory}>{article.category}</Text>
-        <Text style={styles.articleTitle} numberOfLines={2}>{article.title}</Text>
-        <Text style={styles.articleSummary} numberOfLines={2}>{article.summary}</Text>
-        <View style={styles.articleMeta}>
-          <Text style={styles.articleSource}>{article.source}</Text>
-          <Text style={styles.metaDot}>·</Text>
-          <Text style={styles.articleTime}>{article.readTime} min</Text>
-
+        <View style={styles.cardTopRight}>
+          {!article.isRead && (
+            <View style={styles.newBadge}>
+              <Text style={styles.newBadgeText}>New</Text>
+            </View>
+          )}
+          <TouchableOpacity
+            onPress={() => {
+              onSave();
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Bookmark
+              size={18}
+              color={article.isSaved ? Colors.primary : 'rgba(0,0,0,0.35)'}
+              fill={article.isSaved ? Colors.primary : 'transparent'}
+            />
+          </TouchableOpacity>
         </View>
-
-        {article.isRead && (
-          <View style={styles.ratingRow}>
-            {[1, 2, 3, 4, 5].map((star) => (
-              <TouchableOpacity
-                key={star}
-                onPress={() => {
-                  onRate(star);
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                }}
-                hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
-              >
-                <Star
-                  size={16}
-                  color={article.rating && star <= article.rating ? Colors.primary : Colors.textMuted}
-                  fill={article.rating && star <= article.rating ? Colors.primary : 'transparent'}
-                />
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
       </View>
-      <View style={styles.articleImageContainer}>
-        {article.imageUrl ? (
-          <Image source={{ uri: article.imageUrl }} style={styles.articleImage} />
-        ) : (
-          <View style={[styles.articleImage, styles.articleImagePlaceholder]} />
-        )}
-        <TouchableOpacity
-          style={styles.saveButton}
-          onPress={() => {
-            onSave();
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          }}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Bookmark
-            size={16}
-            color={article.isSaved ? Colors.primary : Colors.textMuted}
-            fill={article.isSaved ? Colors.primary : 'transparent'}
-          />
-        </TouchableOpacity>
+
+      <Text style={styles.articleTitle}>{article.title}</Text>
+      <Text style={styles.articleSummary} numberOfLines={3}>{article.summary}</Text>
+
+      <View style={styles.cardBottom}>
+        <Text style={styles.articleTime}>{article.readTime} minutes to read</Text>
+        <View style={styles.arrowButton}>
+          <ChevronRight size={20} color={Colors.text} />
+        </View>
       </View>
     </TouchableOpacity>
   );
 }
 
-function ArticleSkeleton() {
+function ArticleSkeleton({ index }: { index: number }) {
   const pulseAnim = React.useRef(new Animated.Value(0.3)).current;
+  const bgColor = CARD_COLORS[index % CARD_COLORS.length];
 
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 0.7, duration: 800, useNativeDriver: true }),
         Animated.timing(pulseAnim, { toValue: 0.3, duration: 800, useNativeDriver: true }),
       ])
     );
@@ -109,16 +92,12 @@ function ArticleSkeleton() {
   }, []);
 
   return (
-    <Animated.View style={[styles.articleCard, { opacity: pulseAnim }]}>
-      <View style={styles.articleContent}>
-        <View style={styles.skeletonCategory} />
-        <View style={styles.skeletonTitle} />
-        <View style={styles.skeletonSummary} />
-        <View style={styles.skeletonMeta} />
-      </View>
-      <View style={styles.articleImageContainer}>
-        <View style={[styles.articleImage, styles.articleImagePlaceholder]} />
-      </View>
+    <Animated.View style={[styles.articleCard, { backgroundColor: bgColor, opacity: pulseAnim }]}>
+      <View style={styles.skeletonCategory} />
+      <View style={styles.skeletonTitle} />
+      <View style={styles.skeletonSummary} />
+      <View style={{ height: 30 }} />
+      <View style={styles.skeletonMeta} />
     </Animated.View>
   );
 }
@@ -129,10 +108,8 @@ export default function TodayScreen() {
   const {
     user,
     dailyArticles,
-
     markArticleRead,
     toggleSaveArticle,
-    rateArticle,
     articlesLoading,
   } = useApp();
 
@@ -185,22 +162,14 @@ export default function TodayScreen() {
         >
 
 
-          {user?.interests && user.interests.length > 0 && (
-            <View style={styles.interestTags}>
-              {user.interests.map((interest) => (
-                <View key={interest} style={styles.interestTag}>
-                  <Text style={styles.interestTagText}>{interest}</Text>
-                </View>
-              ))}
-            </View>
-          )}
+          <Text style={styles.sectionTitle}>Today's Featured</Text>
 
           <View style={styles.articlesSection}>
             {articlesLoading && dailyArticles.length === 0 ? (
               <>
-                <ArticleSkeleton />
-                <ArticleSkeleton />
-                <ArticleSkeleton />
+                <ArticleSkeleton index={0} />
+                <ArticleSkeleton index={1} />
+                <ArticleSkeleton index={2} />
               </>
             ) : dailyArticles.length === 0 && !articlesLoading ? (
               <View style={styles.emptyState}>
@@ -210,12 +179,12 @@ export default function TodayScreen() {
                 </Text>
               </View>
             ) : (
-              dailyArticles.map((article) => (
+              dailyArticles.map((article, idx) => (
                 <ArticleCard
                   key={article.id}
                   article={article}
+                  index={idx}
                   onSave={() => toggleSaveArticle(article.id)}
-                  onRate={(rating) => rateArticle(article.id, rating)}
                   onRead={() => markArticleRead(article.id)}
                 />
               ))
@@ -269,127 +238,109 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 40,
   },
-
-
-  interestTags: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 20,
-    gap: 8,
-    marginBottom: 16,
-  },
-  interestTag: {
-    backgroundColor: Colors.primaryLight,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  interestTagText: {
-    fontSize: 13,
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: '700' as const,
     color: Colors.text,
-    fontWeight: '500' as const,
+    paddingHorizontal: 20,
+    marginBottom: 16,
+    marginTop: 4,
   },
   articlesSection: {
     paddingHorizontal: 20,
-    gap: 12,
+    gap: 16,
   },
   articleCard: {
-    flexDirection: 'row',
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    gap: 12,
+    borderRadius: 20,
+    padding: 22,
+    minHeight: 200,
   },
-  articleContent: {
-    flex: 1,
+  cardTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  cardTopRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   articleCategory: {
-    fontSize: 11,
-    fontWeight: '700' as const,
-    color: Colors.primary,
-    letterSpacing: 1,
-    marginBottom: 6,
+    fontSize: 14,
+    fontWeight: '500' as const,
+    color: 'rgba(0,0,0,0.55)',
+  },
+  newBadge: {
+    backgroundColor: Colors.primary,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  newBadgeText: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
   },
   articleTitle: {
-    fontSize: 17,
+    fontSize: 24,
     fontWeight: '700' as const,
     color: Colors.text,
-    marginBottom: 6,
-    lineHeight: 22,
+    marginBottom: 10,
+    lineHeight: 30,
+    letterSpacing: -0.3,
   },
   articleSummary: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    lineHeight: 19,
-    marginBottom: 8,
+    fontSize: 14,
+    color: 'rgba(0,0,0,0.5)',
+    lineHeight: 21,
+    marginBottom: 20,
   },
-  articleMeta: {
+  cardBottom: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 4,
-  },
-  articleSource: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-    fontWeight: '500' as const,
-  },
-  metaDot: {
-    fontSize: 12,
-    color: Colors.textMuted,
+    marginTop: 'auto' as const,
   },
   articleTime: {
-    fontSize: 12,
-    color: Colors.textMuted,
+    fontSize: 13,
+    color: 'rgba(0,0,0,0.5)',
+    fontWeight: '500' as const,
   },
-  ratingRow: {
-    flexDirection: 'row',
-    gap: 6,
-    marginTop: 8,
-  },
-  articleImageContainer: {
+  arrowButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
-  },
-  articleImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 12,
-    backgroundColor: Colors.inputBackground,
-  },
-  articleImagePlaceholder: {
-    backgroundColor: Colors.primaryLight,
-  },
-  saveButton: {
-    padding: 4,
   },
   skeletonCategory: {
-    width: 60,
-    height: 10,
-    borderRadius: 4,
-    backgroundColor: Colors.border,
-    marginBottom: 8,
+    width: 80,
+    height: 14,
+    borderRadius: 6,
+    backgroundColor: 'rgba(0,0,0,0.08)',
+    marginBottom: 12,
   },
   skeletonTitle: {
-    width: '90%',
-    height: 16,
-    borderRadius: 4,
-    backgroundColor: Colors.border,
-    marginBottom: 8,
+    width: '80%',
+    height: 24,
+    borderRadius: 6,
+    backgroundColor: 'rgba(0,0,0,0.08)',
+    marginBottom: 10,
   },
   skeletonSummary: {
-    width: '75%',
-    height: 12,
-    borderRadius: 4,
-    backgroundColor: Colors.border,
-    marginBottom: 8,
+    width: '65%',
+    height: 14,
+    borderRadius: 6,
+    backgroundColor: 'rgba(0,0,0,0.08)',
+    marginBottom: 20,
   },
   skeletonMeta: {
-    width: '50%',
-    height: 10,
-    borderRadius: 4,
-    backgroundColor: Colors.border,
+    width: '40%',
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: 'rgba(0,0,0,0.08)',
   },
   emptyState: {
     alignItems: 'center',
