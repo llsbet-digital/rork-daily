@@ -10,9 +10,9 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Crown, Bookmark, Star, ExternalLink } from 'lucide-react-native';
+import { Crown, Bookmark, Star } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import * as WebBrowser from 'expo-web-browser';
+
 import Colors from '@/constants/colors';
 import { useApp } from '@/providers/AppProvider';
 import { Article } from '@/types';
@@ -23,21 +23,13 @@ function ArticleCard({ article, onSave, onRate, onRead }: {
   onRate: (rating: number) => void;
   onRead: () => void;
 }) {
-  const handlePress = useCallback(async () => {
+  const router = useRouter();
+
+  const handlePress = useCallback(() => {
     onRead();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (article.url && article.url !== '#') {
-      try {
-        await WebBrowser.openBrowserAsync(article.url, {
-          presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
-          controlsColor: Colors.primary,
-          toolbarColor: Colors.background,
-        });
-      } catch (err) {
-        console.log('[Article] Failed to open URL:', err);
-      }
-    }
-  }, [onRead, article.url]);
+    router.push({ pathname: '/article-reader', params: { id: article.id } } as any);
+  }, [onRead, article.id, router]);
 
   return (
     <TouchableOpacity
@@ -53,12 +45,7 @@ function ArticleCard({ article, onSave, onRate, onRead }: {
           <Text style={styles.articleSource}>{article.source}</Text>
           <Text style={styles.metaDot}>·</Text>
           <Text style={styles.articleTime}>{article.readTime} min</Text>
-          {article.url && article.url !== '#' && (
-            <>
-              <Text style={styles.metaDot}>·</Text>
-              <ExternalLink size={11} color={Colors.textMuted} />
-            </>
-          )}
+
         </View>
 
         {article.isRead && (
@@ -142,8 +129,7 @@ export default function TodayScreen() {
   const {
     user,
     dailyArticles,
-    todayReadsCompleted,
-    maxDailyReads,
+
     markArticleRead,
     toggleSaveArticle,
     rateArticle,
@@ -197,15 +183,7 @@ export default function TodayScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          <View style={styles.progressSection}>
-            <View style={styles.progressHeader}>
-              <Text style={styles.progressTitle}>Your {maxDailyReads} reads for today</Text>
-              <Text style={styles.progressIndicator}>{todayReadsCompleted}/{maxDailyReads}</Text>
-            </View>
-            <View style={styles.progressBarBg}>
-              <View style={[styles.progressBarFill, { width: `${maxDailyReads > 0 ? (todayReadsCompleted / maxDailyReads) * 100 : 0}%` }]} />
-            </View>
-          </View>
+
 
           {user?.interests && user.interests.length > 0 && (
             <View style={styles.interestTags}>
@@ -292,38 +270,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
 
-  progressSection: {
-    paddingHorizontal: 20,
-    marginTop: 20,
-    marginBottom: 16,
-  },
-  progressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  progressTitle: {
-    fontSize: 22,
-    fontWeight: '800' as const,
-    color: Colors.text,
-  },
-  progressIndicator: {
-    fontSize: 15,
-    fontWeight: '600' as const,
-    color: Colors.textSecondary,
-  },
-  progressBarBg: {
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.border,
-    overflow: 'hidden' as const,
-  },
-  progressBarFill: {
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.text,
-  },
+
   interestTags: {
     flexDirection: 'row',
     flexWrap: 'wrap',
