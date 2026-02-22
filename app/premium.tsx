@@ -54,6 +54,8 @@ export default function PremiumScreen() {
     queryKey: ['offerings'],
     queryFn: getOfferings,
     staleTime: 1000 * 60 * 10,
+    retry: 2,
+    retryDelay: 1000,
   });
 
   const monthlyPackage = React.useMemo(() => {
@@ -246,10 +248,25 @@ export default function PremiumScreen() {
               </View>
 
               {offeringsQuery.isLoading ? (
-                <ActivityIndicator size="small" color={Colors.primary} style={{ marginBottom: 16 }} />
+                <View style={styles.loadingWrap}>
+                  <ActivityIndicator size="small" color={Colors.primary} />
+                  <Text style={styles.loadingText}>Loading plans...</Text>
+                </View>
+              ) : offeringsQuery.isError ? (
+                <View style={styles.errorWrap}>
+                  <Text style={styles.errorText}>Could not load subscription plans</Text>
+                  <TouchableOpacity
+                    style={styles.retryButton}
+                    onPress={() => offeringsQuery.refetch()}
+                    activeOpacity={0.7}
+                  >
+                    <RotateCcw size={14} color={Colors.primary} />
+                    <Text style={styles.retryText}>Tap to retry</Text>
+                  </TouchableOpacity>
+                </View>
               ) : (
                 <TouchableOpacity
-                  style={[styles.upgradeButton, isProcessing && styles.upgradeButtonDisabled]}
+                  style={[styles.upgradeButton, (isProcessing || !activePackage) && styles.upgradeButtonDisabled]}
                   onPress={handlePurchase}
                   activeOpacity={0.8}
                   disabled={isProcessing || !activePackage}
@@ -508,6 +525,42 @@ const styles = StyleSheet.create({
   restoreText: {
     fontSize: 14,
     color: Colors.textSecondary,
+  },
+  loadingWrap: {
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+    paddingVertical: 12,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+  },
+  errorWrap: {
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 16,
+    paddingVertical: 12,
+    width: '100%',
+  },
+  errorText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: Colors.primaryLight,
+  },
+  retryText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: Colors.primary,
   },
   activeContainer: {
     marginBottom: 16,
