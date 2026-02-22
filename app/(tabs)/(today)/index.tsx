@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Animated,
+  Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -28,11 +29,17 @@ function ArticleCard({ article, onSave, onRead, onFeedback, index }: {
   const router = useRouter();
   const bgColor = CARD_COLORS[index % CARD_COLORS.length];
 
-  const handlePress = useCallback(() => {
+  const handlePress = useCallback(async () => {
     onRead();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push({ pathname: '/article-reader', params: { id: article.id } } as any);
-  }, [onRead, article.id, router]);
+    if (article.url && article.url !== '#') {
+      try {
+        await Linking.openURL(article.url);
+      } catch (err) {
+        console.log('[Today] Failed to open URL:', err);
+      }
+    }
+  }, [onRead, article.id, article.url]);
 
   return (
     <TouchableOpacity

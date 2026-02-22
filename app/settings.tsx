@@ -61,9 +61,8 @@ export default function SettingsScreen() {
             <User size={28} color={Colors.primary} />
           </View>
           <View style={styles.profileInfo}>
-            <Text style={styles.profileEmail}>{user?.email || 'user@example.com'}</Text>
+            <Text style={styles.profileName}>{user?.name || user?.email?.split('@')[0] || 'User'}</Text>
             <Text style={styles.profilePlan}>{user?.isPremium ? 'Premium' : 'Free'}</Text>
-            <Text style={styles.profileSince}>Member since {user?.memberSince || 'February 2026'}</Text>
           </View>
         </View>
 
@@ -177,7 +176,7 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F0EBE5',
+    backgroundColor: Colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -223,7 +222,7 @@ const styles = StyleSheet.create({
   profileInfo: {
     flex: 1,
   },
-  profileEmail: {
+  profileName: {
     fontSize: 16,
     fontWeight: '600' as const,
     color: Colors.text,
@@ -232,11 +231,6 @@ const styles = StyleSheet.create({
   profilePlan: {
     fontSize: 14,
     color: Colors.textSecondary,
-  },
-  profileSince: {
-    fontSize: 13,
-    color: Colors.textMuted,
-    marginTop: 2,
   },
   sectionLabel: {
     fontSize: 12,
