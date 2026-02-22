@@ -1,0 +1,116 @@
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { TrendingUp } from 'lucide-react-native';
+import Colors from '@/constants/colors';
+
+export default function OnboardingWelcome() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const slideAnim = React.useRef(new Animated.Value(30)).current;
+
+  React.useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  return (
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+      <View style={styles.content}>
+        <Animated.View style={[styles.centerContent, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+          <View style={styles.iconCircle}>
+            <TrendingUp size={48} color={Colors.primary} strokeWidth={2} />
+          </View>
+          <Text style={styles.title}>Daily</Text>
+          <Text style={styles.subtitle}>
+            Your AI-curated daily briefing.{'\n'}Cut through the noise.
+          </Text>
+        </Animated.View>
+      </View>
+
+      <View style={[styles.bottomSection, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={() => router.push('/onboarding-how' as any)}
+          activeOpacity={0.8}
+          testID="get-started-button"
+        >
+          <Text style={styles.primaryButtonText}>Get Started</Text>
+        </TouchableOpacity>
+
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  centerContent: {
+    alignItems: 'center',
+  },
+  iconCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: Colors.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  title: {
+    fontSize: 36,
+    fontWeight: '700' as const,
+    color: Colors.text,
+    marginBottom: 12,
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  bottomSection: {
+    paddingHorizontal: 24,
+    gap: 16,
+    alignItems: 'center',
+  },
+  primaryButton: {
+    backgroundColor: Colors.dark,
+    borderRadius: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 32,
+    width: '100%',
+    alignItems: 'center',
+  },
+  primaryButtonText: {
+    color: Colors.white,
+    fontSize: 17,
+    fontWeight: '600' as const,
+  },
+  skipText: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+    paddingVertical: 8,
+  },
+});
