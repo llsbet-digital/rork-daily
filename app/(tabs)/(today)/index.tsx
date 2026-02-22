@@ -8,13 +8,13 @@ import {
   Image,
   Animated,
   ActivityIndicator,
-  Linking,
   RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Crown, Bookmark, Star, ExternalLink } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import * as WebBrowser from 'expo-web-browser';
 import Colors from '@/constants/colors';
 import { useApp } from '@/providers/AppProvider';
 import { Article } from '@/types';
@@ -25,14 +25,20 @@ function ArticleCard({ article, onSave, onRate, onRead }: {
   onRate: (rating: number) => void;
   onRead: () => void;
 }) {
-  const handlePress = useCallback(() => {
+  const handlePress = useCallback(async () => {
     onRead();
-    if (article.url && article.url !== '#') {
-      Linking.openURL(article.url).catch(err => {
-        console.log('[Article] Failed to open URL:', err);
-      });
-    }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (article.url && article.url !== '#') {
+      try {
+        await WebBrowser.openBrowserAsync(article.url, {
+          presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
+          controlsColor: Colors.primary,
+          toolbarColor: Colors.background,
+        });
+      } catch (err) {
+        console.log('[Article] Failed to open URL:', err);
+      }
+    }
   }, [onRead, article.url]);
 
   return (
