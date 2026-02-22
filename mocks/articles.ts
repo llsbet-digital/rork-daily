@@ -45,7 +45,7 @@ export const generateArticlesForInterests = (interests: string[]): Article[] => 
         imageUrl: images[id % images.length],
         url: `https://example.com/article-${id}`,
         isRead: false,
-        rating: null,
+        feedback: null,
         isSaved: false,
       });
       id++;

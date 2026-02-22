@@ -328,17 +328,19 @@ export const [AppProvider, useApp] = createContextHook(() => {
     }
   }, [session, refreshCustomerInfo, user, articles]);
 
-  const rateArticle = useCallback((articleId: string, rating: number) => {
+  const feedbackArticle = useCallback((articleId: string, feedback: 'up' | 'down') => {
+    const toggle = (current: 'up' | 'down' | null) => current === feedback ? null : feedback;
     setArticles(prev =>
-      prev.map(a => a.id === articleId ? { ...a, rating } : a)
+      prev.map(a => a.id === articleId ? { ...a, feedback: toggle(a.feedback) } : a)
     );
     setLibraryArticles(prev => {
       const exists = prev.find(a => a.id === articleId);
       if (!exists) return prev;
-      const updated = prev.map(a => a.id === articleId ? { ...a, rating } : a);
+      const updated = prev.map(a => a.id === articleId ? { ...a, feedback: toggle(a.feedback) } : a);
       persistSavedArticles(updated);
       return updated;
     });
+    console.log('[App] Article feedback:', articleId, feedback);
   }, [persistSavedArticles]);
 
   const markArticleRead = useCallback((articleId: string) => {
@@ -443,7 +445,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     completeOnboarding,
     togglePremium,
     refreshCustomerInfo,
-    rateArticle,
+    feedbackArticle,
     markArticleRead,
     toggleSaveArticle,
     updateInterests,

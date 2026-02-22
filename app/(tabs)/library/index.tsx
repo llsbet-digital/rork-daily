@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Search, Bookmark, ChevronRight, Star } from 'lucide-react-native';
+import { Search, Bookmark, ChevronRight, ThumbsUp, ThumbsDown } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 import { useApp } from '@/providers/AppProvider';
@@ -18,13 +18,13 @@ import { Article } from '@/types';
 
 const CARD_COLORS = ['#E8DFF5', '#F5E6D3', '#E5F1F0', '#FCF4E9'] as const;
 
-function LibraryArticleCard({ article, onSave, index }: {
+function LibraryArticleCard({ article, onSave, onFeedback, index }: {
   article: Article;
   onSave: () => void;
+  onFeedback: (type: 'up' | 'down') => void;
   index: number;
 }) {
   const router = useRouter();
-  const { rateArticle } = useApp();
   const bgColor = CARD_COLORS[index % CARD_COLORS.length];
 
   const handlePress = useCallback(() => {
@@ -59,27 +59,37 @@ function LibraryArticleCard({ article, onSave, index }: {
 
       <Text style={styles.articleTitle}>{article.title}</Text>
 
-      <View style={styles.ratingRow}>
-        {[1, 2, 3, 4, 5].map((star) => (
+      <View style={styles.cardBottom}>
+        <View style={styles.feedbackRow}>
           <TouchableOpacity
-            key={star}
             onPress={() => {
-              rateArticle(article.id, star);
+              onFeedback('up');
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }}
-            hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            style={[styles.feedbackBtn, article.feedback === 'up' && styles.feedbackBtnActive]}
           >
-            <Star
-              size={16}
-              color={article.rating && star <= article.rating ? Colors.primary : 'rgba(0,0,0,0.25)'}
-              fill={article.rating && star <= article.rating ? Colors.primary : 'transparent'}
+            <ThumbsUp
+              size={15}
+              color={article.feedback === 'up' ? Colors.primary : 'rgba(0,0,0,0.3)'}
+              fill={article.feedback === 'up' ? Colors.primary : 'transparent'}
             />
           </TouchableOpacity>
-        ))}
-      </View>
-
-      <View style={styles.cardBottom}>
-        <Text style={styles.articleTime}>{article.readTime} minutes to read</Text>
+          <TouchableOpacity
+            onPress={() => {
+              onFeedback('down');
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            style={[styles.feedbackBtn, article.feedback === 'down' && styles.feedbackBtnActive]}
+          >
+            <ThumbsDown
+              size={15}
+              color={article.feedback === 'down' ? '#E05555' : 'rgba(0,0,0,0.3)'}
+              fill={article.feedback === 'down' ? '#E05555' : 'transparent'}
+            />
+          </TouchableOpacity>
+        </View>
         <View style={styles.arrowButton}>
           <ChevronRight size={20} color={Colors.text} />
         </View>
@@ -91,7 +101,7 @@ function LibraryArticleCard({ article, onSave, index }: {
 export default function LibraryScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user, savedArticles, toggleSaveArticle } = useApp();
+  const { user, savedArticles, toggleSaveArticle, feedbackArticle } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
 
@@ -160,6 +170,7 @@ export default function LibraryScreen() {
                 article={article}
                 index={idx}
                 onSave={() => toggleSaveArticle(article.id)}
+                onFeedback={(type) => feedbackArticle(article.id, type)}
               />
             ))}
           </ScrollView>
@@ -276,10 +287,21 @@ const styles = StyleSheet.create({
     lineHeight: 30,
     letterSpacing: -0.3,
   },
-  ratingRow: {
+  feedbackRow: {
     flexDirection: 'row',
-    gap: 6,
-    marginBottom: 16,
+    alignItems: 'center',
+    gap: 8,
+  },
+  feedbackBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(255,255,255,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  feedbackBtnActive: {
+    backgroundColor: '#FFFFFF',
   },
   cardBottom: {
     flexDirection: 'row',
@@ -287,11 +309,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 'auto' as const,
   },
-  articleTime: {
-    fontSize: 13,
-    color: 'rgba(0,0,0,0.5)',
-    fontWeight: '500' as const,
-  },
+
   arrowButton: {
     width: 40,
     height: 40,

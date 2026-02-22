@@ -124,7 +124,7 @@ Respond with ONLY a valid JSON object in this exact format, no markdown or extra
       imageUrl: unsplashImages[i % unsplashImages.length],
       url: a.url,
       isRead: false,
-      rating: null,
+      feedback: null,
       isSaved: false,
     }));
 

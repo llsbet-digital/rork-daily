@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { X, ExternalLink, Bookmark, Star, Clock, Globe } from 'lucide-react-native';
+import { X, ExternalLink, Bookmark, ThumbsUp, ThumbsDown, Clock, Globe } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 import { useApp } from '@/providers/AppProvider';
@@ -21,7 +21,7 @@ export default function ArticleReaderScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { articles, savedArticles, toggleSaveArticle, rateArticle } = useApp();
+  const { articles, savedArticles, toggleSaveArticle, feedbackArticle } = useApp();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -51,11 +51,11 @@ export default function ArticleReaderScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   }, [id, toggleSaveArticle]);
 
-  const handleRate = useCallback((rating: number) => {
+  const handleFeedback = useCallback((type: 'up' | 'down') => {
     if (!id) return;
-    rateArticle(id, rating);
+    feedbackArticle(id, type);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, [id, rateArticle]);
+  }, [id, feedbackArticle]);
 
   if (!article) {
     return (
@@ -152,22 +152,32 @@ export default function ArticleReaderScreen() {
             )}
 
             <View style={styles.ratingSection}>
-              <Text style={styles.ratingLabel}>Rate this article</Text>
-              <View style={styles.ratingStars}>
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <TouchableOpacity
-                    key={star}
-                    onPress={() => handleRate(star)}
-                    hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
-                    activeOpacity={0.7}
-                  >
-                    <Star
-                      size={28}
-                      color={article.rating && star <= article.rating ? Colors.primary : Colors.border}
-                      fill={article.rating && star <= article.rating ? Colors.primary : 'transparent'}
-                    />
-                  </TouchableOpacity>
-                ))}
+              <Text style={styles.ratingLabel}>Was this helpful?</Text>
+              <View style={styles.feedbackRow}>
+                <TouchableOpacity
+                  onPress={() => handleFeedback('up')}
+                  activeOpacity={0.7}
+                  style={[styles.feedbackBtn, article.feedback === 'up' && styles.feedbackBtnActiveUp]}
+                >
+                  <ThumbsUp
+                    size={22}
+                    color={article.feedback === 'up' ? Colors.primary : Colors.textMuted}
+                    fill={article.feedback === 'up' ? Colors.primary : 'transparent'}
+                  />
+                  <Text style={[styles.feedbackLabel, article.feedback === 'up' && { color: Colors.primary }]}>Yes</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => handleFeedback('down')}
+                  activeOpacity={0.7}
+                  style={[styles.feedbackBtn, article.feedback === 'down' && styles.feedbackBtnActiveDown]}
+                >
+                  <ThumbsDown
+                    size={22}
+                    color={article.feedback === 'down' ? '#E05555' : Colors.textMuted}
+                    fill={article.feedback === 'down' ? '#E05555' : 'transparent'}
+                  />
+                  <Text style={[styles.feedbackLabel, article.feedback === 'down' && { color: '#E05555' }]}>No</Text>
+                </TouchableOpacity>
               </View>
             </View>
           </View>
@@ -322,9 +332,29 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginBottom: 12,
   },
-  ratingStars: {
+  feedbackRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 20,
+  },
+  feedbackBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 14,
+    backgroundColor: Colors.inputBackground,
+    gap: 6,
+  },
+  feedbackBtnActiveUp: {
+    backgroundColor: Colors.primaryLight,
+  },
+  feedbackBtnActiveDown: {
+    backgroundColor: '#FDE8E8',
+  },
+  feedbackLabel: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: Colors.textMuted,
   },
   errorState: {
     flex: 1,

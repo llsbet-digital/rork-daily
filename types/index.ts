@@ -21,7 +21,7 @@ export interface Article {
   imageUrl: string;
   url: string;
   isRead: boolean;
-  rating: number | null;
+  feedback: 'up' | 'down' | null;
   isSaved: boolean;
 }
 
