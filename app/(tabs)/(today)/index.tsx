@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Crown, ChevronRight, Bookmark, ThumbsUp, ThumbsDown } from 'lucide-react-native';
+import { Crown, Sparkles, Bookmark, ThumbsUp, ThumbsDown, Loader } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 
 import Colors from '@/constants/colors';
@@ -19,14 +19,35 @@ import { Article } from '@/types';
 
 const CARD_COLORS = ['#E8DFF5', '#F5E6D3', '#E5F1F0', '#FCF4E9'] as const;
 
-function ArticleCard({ article, onSave, onRead, onFeedback, index }: {
+function ArticleCard({ article, onSave, onRead, onFeedback, onGenerateInsight, index, isGenerating, hasInsight }: {
   article: Article;
   onSave: () => void;
   onRead: () => void;
   onFeedback: (type: 'up' | 'down') => void;
+  onGenerateInsight: () => void;
   index: number;
+  isGenerating: boolean;
+  hasInsight: boolean;
 }) {
   const router = useRouter();
+  const spinAnim = React.useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (isGenerating) {
+      const loop = Animated.loop(
+        Animated.timing(spinAnim, { toValue: 1, duration: 1200, useNativeDriver: true })
+      );
+      loop.start();
+      return () => loop.stop();
+    } else {
+      spinAnim.setValue(0);
+    }
+  }, [isGenerating]);
+
+  const spin = spinAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
   const bgColor = CARD_COLORS[index % CARD_COLORS.length];
 
   const handlePress = useCallback(async () => {
@@ -100,9 +121,25 @@ function ArticleCard({ article, onSave, onRead, onFeedback, index }: {
             />
           </TouchableOpacity>
         </View>
-        <View style={styles.arrowButton}>
-          <ChevronRight size={20} color={Colors.text} />
-        </View>
+        <TouchableOpacity
+          style={[styles.sparkButton, hasInsight && styles.sparkButtonActive]}
+          onPress={() => {
+            if (!isGenerating) {
+              onGenerateInsight();
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            }
+          }}
+          activeOpacity={0.7}
+          disabled={isGenerating}
+        >
+          {isGenerating ? (
+            <Animated.View style={{ transform: [{ rotate: spin }] }}>
+              <Sparkles size={18} color={Colors.primary} />
+            </Animated.View>
+          ) : (
+            <Sparkles size={18} color={hasInsight ? Colors.white : Colors.text} fill={hasInsight ? Colors.white : 'transparent'} />
+          )}
+        </TouchableOpacity>
       </View>
     </TouchableOpacity>
   );
@@ -144,6 +181,9 @@ export default function TodayScreen() {
     toggleSaveArticle,
     feedbackArticle,
     articlesLoading,
+    generateInsight,
+    insights,
+    generatingInsightId,
   } = useApp();
 
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
@@ -220,6 +260,9 @@ export default function TodayScreen() {
                   onSave={() => toggleSaveArticle(article.id)}
                   onRead={() => markArticleRead(article.id)}
                   onFeedback={(type) => feedbackArticle(article.id, type)}
+                  onGenerateInsight={() => generateInsight(article.id)}
+                  isGenerating={generatingInsightId === article.id}
+                  hasInsight={insights.some(i => i.articleId === article.id)}
                 />
               ))
             )}
@@ -342,13 +385,16 @@ const styles = StyleSheet.create({
   feedbackBtnActive: {
     backgroundColor: '#FFFFFF',
   },
-  arrowButton: {
+  sparkButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  sparkButtonActive: {
+    backgroundColor: Colors.primary,
   },
   skeletonCategory: {
     width: 80,

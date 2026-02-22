@@ -39,4 +39,14 @@ export interface WeeklyInsight {
 
 export type OnboardingStep = 'welcome' | 'how-it-works' | 'interests' | 'done';
 
+export interface ArticleInsight {
+  id: string;
+  articleId: string;
+  articleTitle: string;
+  category: string;
+  summary: string;
+  keyTakeaways: string[];
+  generatedAt: string;
+}
+
 export type AuthMode = 'signin' | 'signup';

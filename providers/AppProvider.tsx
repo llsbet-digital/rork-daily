@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import createContextHook from '@nkzw/create-context-hook';
-import { User, Article } from '@/types';
+import { User, Article, ArticleInsight } from '@/types';
 import { fetchDailyArticles, fetchAdditionalArticles, clearArticleCache } from '@/lib/articles';
 import { supabase, UserProfile } from '@/lib/supabase';
 import { Session } from '@supabase/supabase-js';
@@ -11,6 +11,7 @@ import { configureRevenueCat, getCustomerInfo, checkEntitlement, loginRC, logout
 const STORAGE_KEYS = {
   ARTICLES: 'daily_articles',
   SAVED_ARTICLES: 'saved_articles_library',
+  INSIGHTS: 'article_insights',
 } as const;
 
 function profileToUser(profile: UserProfile): User {
@@ -42,6 +43,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isNewSignUp, setIsNewSignUp] = useState<boolean>(false);
   const [articlesLoading, setArticlesLoading] = useState<boolean>(false);
+  const [insights, setInsights] = useState<ArticleInsight[]>([]);
+  const [generatingInsightId, setGeneratingInsightId] = useState<string | null>(null);
 
   useEffect(() => {
     console.log('[App] Initializing Supabase auth listener');
@@ -181,9 +184,32 @@ export const [AppProvider, useApp] = createContextHook(() => {
     }
   }, []);
 
+  const loadInsights = useCallback(async () => {
+    try {
+      const stored = await AsyncStorage.getItem(STORAGE_KEYS.INSIGHTS);
+      if (stored) {
+        const parsed = JSON.parse(stored) as ArticleInsight[];
+        setInsights(parsed);
+        console.log('[App] Loaded', parsed.length, 'insights');
+      }
+    } catch (e) {
+      console.log('[App] Failed to load insights:', e);
+    }
+  }, []);
+
+  const persistInsights = useCallback(async (items: ArticleInsight[]) => {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.INSIGHTS, JSON.stringify(items));
+      console.log('[App] Persisted', items.length, 'insights');
+    } catch (e) {
+      console.log('[App] Failed to persist insights:', e);
+    }
+  }, []);
+
   useEffect(() => {
     loadSavedArticles();
-  }, [loadSavedArticles]);
+    loadInsights();
+  }, [loadSavedArticles, loadInsights]);
 
   const loadArticlesForUser = useCallback(async (interests: string[], isPremium: boolean) => {
     if (!interests || interests.length === 0) return;
@@ -403,6 +429,68 @@ export const [AppProvider, useApp] = createContextHook(() => {
     }
   }, [articles, libraryArticles, todaySavesUsed, maxDailySaves, persistSavedArticles]);
 
+  const generateInsight = useCallback(async (articleId: string) => {
+    const article = articles.find(a => a.id === articleId) || libraryArticles.find(a => a.id === articleId);
+    if (!article) {
+      console.log('[App] Article not found for insight:', articleId);
+      return;
+    }
+
+    const existing = insights.find(i => i.articleId === articleId);
+    if (existing) {
+      console.log('[App] Insight already exists for article:', articleId);
+      return;
+    }
+
+    setGeneratingInsightId(articleId);
+    try {
+      const { generateObject } = await import('@rork-ai/toolkit-sdk');
+      const { z } = await import('zod');
+
+      const result = await generateObject({
+        messages: [
+          {
+            role: 'user',
+            content: `Analyze this article and provide a concise summary and key takeaways.
+
+Title: ${article.title}
+Category: ${article.category}
+Content: ${article.content || article.summary}
+
+Provide:
+1. A 2-3 sentence summary capturing the core message
+2. 3-4 key takeaways or insights that are actionable or thought-provoking`,
+          },
+        ],
+        schema: z.object({
+          summary: z.string().describe('A concise 2-3 sentence summary'),
+          keyTakeaways: z.array(z.string()).describe('3-4 key takeaways'),
+        }),
+      });
+
+      const newInsight: ArticleInsight = {
+        id: `insight_${Date.now()}`,
+        articleId: article.id,
+        articleTitle: article.title,
+        category: article.category,
+        summary: result.summary,
+        keyTakeaways: result.keyTakeaways,
+        generatedAt: new Date().toISOString(),
+      };
+
+      setInsights(prev => {
+        const updated = [newInsight, ...prev];
+        persistInsights(updated);
+        return updated;
+      });
+      console.log('[App] Generated insight for article:', article.title);
+    } catch (error) {
+      console.log('[App] Failed to generate insight:', error);
+    } finally {
+      setGeneratingInsightId(null);
+    }
+  }, [articles, libraryArticles, insights, persistInsights]);
+
   const updateInterests = useCallback(async (interests: string[]) => {
     if (!user || !session?.user?.id) return;
 
@@ -449,6 +537,9 @@ export const [AppProvider, useApp] = createContextHook(() => {
     markArticleRead,
     toggleSaveArticle,
     updateInterests,
+    generateInsight,
+    insights,
+    generatingInsightId,
 
     isSigningUp: false,
     isSigningIn: false,
