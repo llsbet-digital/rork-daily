@@ -196,6 +196,13 @@ export default function TodayScreen() {
     }).start();
   }, []);
 
+  const handleGenerateInsight = useCallback(async (articleId: string) => {
+    const result = await generateInsight(articleId);
+    if (result === 'premium_required') {
+      router.push('/premium' as any);
+    }
+  }, [generateInsight, router]);
+
   const getGreeting = useCallback(() => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
@@ -260,7 +267,7 @@ export default function TodayScreen() {
                   onSave={() => toggleSaveArticle(article.id)}
                   onRead={() => markArticleRead(article.id)}
                   onFeedback={(type) => feedbackArticle(article.id, type)}
-                  onGenerateInsight={() => generateInsight(article.id)}
+                  onGenerateInsight={() => handleGenerateInsight(article.id)}
                   isGenerating={generatingInsightId === article.id}
                   hasInsight={insights.some(i => i.articleId === article.id)}
                 />

@@ -430,6 +430,11 @@ export const [AppProvider, useApp] = createContextHook(() => {
   }, [articles, libraryArticles, todaySavesUsed, maxDailySaves, persistSavedArticles]);
 
   const generateInsight = useCallback(async (articleId: string) => {
+    if (!user?.isPremium) {
+      console.log('[App] AI insights require premium subscription');
+      return 'premium_required' as const;
+    }
+
     const article = articles.find(a => a.id === articleId) || libraryArticles.find(a => a.id === articleId);
     if (!article) {
       console.log('[App] Article not found for insight:', articleId);
@@ -518,7 +523,7 @@ Respond in this exact JSON format:
     } finally {
       setGeneratingInsightId(null);
     }
-  }, [articles, libraryArticles, insights, persistInsights]);
+  }, [articles, libraryArticles, insights, persistInsights, user?.isPremium]);
 
   const updateInterests = useCallback(async (interests: string[]) => {
     if (!user || !session?.user?.id) return;
