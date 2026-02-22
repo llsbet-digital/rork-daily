@@ -119,7 +119,7 @@ export default function PremiumScreen() {
     restoreMutation.mutate();
   }, [restoreMutation]);
 
-  const monthlyPrice = monthlyPackage?.product?.priceString ?? '$4.99';
+  const monthlyPrice = monthlyPackage?.product?.priceString ?? '$3.99';
   const yearlyPrice = yearlyPackage?.product?.priceString ?? '$29.99';
   const isProcessing = purchaseMutation.isPending || restoreMutation.isPending;
 
