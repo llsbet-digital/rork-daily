@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useMemo } from 'react';
+import React, { useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,15 +6,26 @@ import {
   Animated,
   ScrollView,
   TouchableOpacity,
+  FlatList,
+  Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Sparkles, Lightbulb } from 'lucide-react-native';
+import { Sparkles, Lightbulb, BookOpen } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useApp } from '@/providers/AppProvider';
 import { ArticleInsight } from '@/types';
+import { LinearGradient } from 'expo-linear-gradient';
 
-const CARD_COLORS = ['#E8DFF5', '#F5E6D3', '#E5F1F0', '#FCF4E9'] as const;
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const INSIGHT_CARD_WIDTH = SCREEN_WIDTH * 0.6;
+
+const GRADIENT_SETS = [
+  ['#E8C8F5', '#F5D0C0', '#FCE4C8'],
+  ['#C8E8F0', '#D0F0E8', '#E8F5D0'],
+  ['#F5D8C0', '#FCE8D0', '#F5F0C8'],
+  ['#D0D8F5', '#E0C8F5', '#F0D0E8'],
+] as const;
 
 function formatDayLabel(dateStr: string): string {
   const date = new Date(dateStr);
@@ -32,23 +43,23 @@ function formatDayLabel(dateStr: string): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-function InsightCard({ insight, index }: { insight: ArticleInsight; index: number }) {
-  const bgColor = CARD_COLORS[index % CARD_COLORS.length];
-  const fadeAnim = React.useRef(new Animated.Value(0)).current;
-  const slideAnim = React.useRef(new Animated.Value(20)).current;
+function ArticleInsightBlock({ insight, index }: { insight: ArticleInsight; index: number }) {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+  const gradientColors = GRADIENT_SETS[index % GRADIENT_SETS.length];
 
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 400,
-        delay: index * 80,
+        duration: 500,
+        delay: index * 120,
         useNativeDriver: true,
       }),
       Animated.timing(slideAnim, {
         toValue: 0,
-        duration: 400,
-        delay: index * 80,
+        duration: 500,
+        delay: index * 120,
         useNativeDriver: true,
       }),
     ]).start();
@@ -57,35 +68,68 @@ function InsightCard({ insight, index }: { insight: ArticleInsight; index: numbe
   return (
     <Animated.View
       style={[
-        styles.insightCard,
-        { backgroundColor: bgColor, opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
+        styles.articleBlock,
+        { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
       ]}
     >
-      <View style={styles.cardHeader}>
-        <View style={styles.categoryBadge}>
-          <Sparkles size={12} color={Colors.primary} />
-          <Text style={styles.categoryText}>{insight.category}</Text>
+      <View style={styles.articleHeader}>
+        <View style={styles.articleTitleRow}>
+          <BookOpen size={14} color={Colors.primary} />
+          <Text style={styles.articleTitle} numberOfLines={1}>{insight.articleTitle}</Text>
         </View>
-        <Text style={styles.timeText}>
-          {new Date(insight.generatedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-        </Text>
+        <View style={styles.categoryPill}>
+          <Text style={styles.categoryPillText}>{insight.category}</Text>
+        </View>
       </View>
 
-      <Text style={styles.insightTitle} numberOfLines={2}>{insight.articleTitle}</Text>
-      <Text style={styles.insightSummary}>{insight.summary}</Text>
+      <LinearGradient
+        colors={[...gradientColors]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.summaryGradientBorder}
+      >
+        <View style={styles.summaryInner}>
+          <Text style={styles.summaryLabel}>Brief Summary</Text>
+          <Text style={styles.summaryText}>{insight.summary}</Text>
+          <Text style={styles.summaryTime}>
+            {new Date(insight.generatedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+          </Text>
+        </View>
+      </LinearGradient>
 
       {insight.keyTakeaways.length > 0 && (
-        <View style={styles.takeawaysSection}>
-          <View style={styles.takeawaysHeader}>
-            <Lightbulb size={14} color="rgba(0,0,0,0.5)" />
-            <Text style={styles.takeawaysLabel}>Key Takeaways</Text>
-          </View>
-          {insight.keyTakeaways.map((takeaway, i) => (
-            <View key={i} style={styles.takeawayRow}>
-              <View style={styles.takeawayDot} />
-              <Text style={styles.takeawayText}>{takeaway}</Text>
+        <View style={styles.insightsSection}>
+          <View style={styles.insightsSectionHeader}>
+            <View style={styles.insightsSectionTitleRow}>
+              <Lightbulb size={15} color={Colors.primary} />
+              <Text style={styles.insightsSectionTitle}>Key Insights</Text>
             </View>
-          ))}
+            <Text style={styles.insightsCount}>{insight.keyTakeaways.length} insights</Text>
+          </View>
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            data={insight.keyTakeaways}
+            keyExtractor={(_, i) => `${insight.id}_takeaway_${i}`}
+            contentContainerStyle={styles.insightsScrollContent}
+            renderItem={({ item, index: tIdx }) => (
+              <View
+                style={[
+                  styles.insightChip,
+                  { backgroundColor: `${gradientColors[tIdx % gradientColors.length]}40` },
+                  { borderColor: `${gradientColors[tIdx % gradientColors.length]}90` },
+                ]}
+              >
+                <View style={styles.insightChipContent}>
+                  <Text style={styles.insightChipText}>{item}</Text>
+                </View>
+                <View style={styles.insightChipFooter}>
+                  <Sparkles size={11} color={Colors.textSecondary} />
+                  <Text style={styles.insightChipIndex}>Insight {tIdx + 1}</Text>
+                </View>
+              </View>
+            )}
+          />
         </View>
       )}
     </Animated.View>
@@ -96,7 +140,7 @@ export default function InsightsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user, insights } = useApp();
-  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -199,7 +243,7 @@ export default function InsightsScreen() {
               <View key={group.date} style={styles.dayGroup}>
                 <Text style={styles.dayLabel}>{group.label}</Text>
                 {group.items.map((insight, idx) => (
-                  <InsightCard key={insight.id} insight={insight} index={idx} />
+                  <ArticleInsightBlock key={insight.id} insight={insight} index={idx} />
                 ))}
               </View>
             ))}
@@ -293,93 +337,132 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   dayGroup: {
-    marginTop: 16,
+    marginTop: 20,
   },
   dayLabel: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700' as const,
     color: Colors.text,
-    marginBottom: 12,
+    marginBottom: 16,
     letterSpacing: -0.2,
   },
-  insightCard: {
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 14,
+  articleBlock: {
+    marginBottom: 28,
   },
-  cardHeader: {
+  articleHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 12,
   },
-  categoryBadge: {
+  articleTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    backgroundColor: 'rgba(255,255,255,0.6)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
+    gap: 8,
+    flex: 1,
+    marginRight: 12,
   },
-  categoryText: {
+  articleTitle: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: Colors.text,
+    flex: 1,
+    letterSpacing: -0.2,
+  },
+  categoryPill: {
+    backgroundColor: Colors.primaryLight,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 10,
+  },
+  categoryPillText: {
     fontSize: 12,
     fontWeight: '600' as const,
-    color: 'rgba(0,0,0,0.55)',
+    color: Colors.primary,
   },
-  timeText: {
-    fontSize: 12,
-    color: 'rgba(0,0,0,0.35)',
-    fontWeight: '500' as const,
-  },
-  insightTitle: {
-    fontSize: 20,
-    fontWeight: '700' as const,
-    color: Colors.text,
-    marginBottom: 10,
-    lineHeight: 26,
-    letterSpacing: -0.3,
-  },
-  insightSummary: {
-    fontSize: 14,
-    color: 'rgba(0,0,0,0.6)',
-    lineHeight: 21,
+  summaryGradientBorder: {
+    borderRadius: 20,
+    padding: 2.5,
     marginBottom: 16,
   },
-  takeawaysSection: {
-    backgroundColor: 'rgba(255,255,255,0.5)',
-    borderRadius: 14,
-    padding: 14,
+  summaryInner: {
+    backgroundColor: Colors.cardBackground,
+    borderRadius: 18,
+    padding: 20,
   },
-  takeawaysHeader: {
+  summaryLabel: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: Colors.textMuted,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 1,
+    marginBottom: 10,
+  },
+  summaryText: {
+    fontSize: 15,
+    color: Colors.text,
+    lineHeight: 23,
+    letterSpacing: -0.1,
+  },
+  summaryTime: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    marginTop: 14,
+    textAlign: 'right' as const,
+  },
+  insightsSection: {
+    marginTop: 0,
+  },
+  insightsSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  insightsSectionTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 10,
   },
-  takeawaysLabel: {
-    fontSize: 13,
+  insightsSectionTitle: {
+    fontSize: 14,
     fontWeight: '600' as const,
-    color: 'rgba(0,0,0,0.5)',
-  },
-  takeawayRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    marginBottom: 8,
-  },
-  takeawayDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.primary,
-    marginTop: 6,
-  },
-  takeawayText: {
-    fontSize: 13,
     color: Colors.text,
-    lineHeight: 19,
+  },
+  insightsCount: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    fontWeight: '500' as const,
+  },
+  insightsScrollContent: {
+    gap: 10,
+  },
+  insightChip: {
+    width: INSIGHT_CARD_WIDTH,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    padding: 16,
+    justifyContent: 'space-between',
+  },
+  insightChipContent: {
     flex: 1,
+    marginBottom: 12,
+  },
+  insightChipText: {
+    fontSize: 14,
+    color: Colors.text,
+    lineHeight: 21,
+    letterSpacing: -0.1,
+  },
+  insightChipFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  insightChipIndex: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    fontWeight: '500' as const,
   },
   emptyContent: {
     flex: 1,
@@ -405,7 +488,7 @@ const styles = StyleSheet.create({
   emptySubtitle: {
     fontSize: 15,
     color: Colors.textSecondary,
-    textAlign: 'center',
+    textAlign: 'center' as const,
     lineHeight: 22,
   },
 });
