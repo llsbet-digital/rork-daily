@@ -1,5 +1,5 @@
 const Colors = {
-  background: '#FFF8F2',
+  background: '#F5F5F5',
   cardBackground: '#FFFFFF',
   primary: '#C1512D',
   primaryLight: '#F0DDD5',
