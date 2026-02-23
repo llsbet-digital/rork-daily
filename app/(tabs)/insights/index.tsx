@@ -21,10 +21,10 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const INSIGHT_CARD_WIDTH = SCREEN_WIDTH * 0.6;
 
 const GRADIENT_SETS = [
-  ['#E8C8F5', '#F5D0C0', '#FCE4C8'],
-  ['#C8E8F0', '#D0F0E8', '#E8F5D0'],
-  ['#F5D8C0', '#FCE8D0', '#F5F0C8'],
-  ['#D0D8F5', '#E0C8F5', '#F0D0E8'],
+  ['#F9EDF0', '#F5E0E4', '#F7EADF'],
+  ['#F0E8F3', '#F5E2E6', '#F9EDE5'],
+  ['#F5EADF', '#F7E4E0', '#F3E8F0'],
+  ['#EDE8F5', '#F2E0EC', '#F7EAE4'],
 ] as const;
 
 function formatDayLabel(dateStr: string): string {
@@ -84,17 +84,15 @@ function ArticleInsightBlock({ insight, index }: { insight: ArticleInsight; inde
 
       <LinearGradient
         colors={[...gradientColors]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.summaryGradientBorder}
+        start={{ x: 0.1, y: 0 }}
+        end={{ x: 0.9, y: 1 }}
+        style={styles.summaryCard}
       >
-        <View style={styles.summaryInner}>
-          <Text style={styles.summaryLabel}>Brief Summary</Text>
-          <Text style={styles.summaryText}>{insight.summary}</Text>
-          <Text style={styles.summaryTime}>
-            {new Date(insight.generatedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-          </Text>
-        </View>
+        <Text style={styles.summaryLabel}>Brief Summary</Text>
+        <Text style={styles.summaryText}>{insight.summary}</Text>
+        <Text style={styles.summaryTime}>
+          {new Date(insight.generatedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+        </Text>
       </LinearGradient>
 
       {insight.keyTakeaways.length > 0 && (
@@ -380,15 +378,10 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: Colors.primary,
   },
-  summaryGradientBorder: {
+  summaryCard: {
     borderRadius: 20,
-    padding: 2.5,
-    marginBottom: 16,
-  },
-  summaryInner: {
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 18,
     padding: 20,
+    marginBottom: 16,
   },
   summaryLabel: {
     fontSize: 11,
