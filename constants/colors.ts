@@ -8,7 +8,7 @@ const Colors = {
   textSecondary: '#8A8A8A',
   textMuted: '#B5B5B5',
   border: '#F0E0E4',
-  inputBackground: '#FFF0F2',
+  inputBackground: '#F8F7F5',
   dark: '#1A1A1A',
   white: '#FFFFFF',
   success: '#4CAF50',

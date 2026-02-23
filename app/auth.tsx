@@ -219,8 +219,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     fontSize: 16,
     color: Colors.text,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderWidth: 0,
   },
   authButton: {
     backgroundColor: Colors.dark,

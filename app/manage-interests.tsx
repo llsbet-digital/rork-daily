@@ -312,7 +312,7 @@ export default function ManageInterestsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F0EBE5',
+    backgroundColor: '#F8F7F5',
   },
   header: {
     flexDirection: 'row',
@@ -443,7 +443,7 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0EBE5',
+    backgroundColor: '#F8F7F5',
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 4,
