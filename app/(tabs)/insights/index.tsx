@@ -21,7 +21,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const INSIGHT_CARD_WIDTH = SCREEN_WIDTH * 0.6;
 
-const SUMMARY_COLORS = ['#E8DFF5', '#F5E6D3', '#E5F1F0'] as const;
+const SUMMARY_GRADIENT_SETS = [
+  ['#F9F0F3', '#F5DDE3', '#FAE8E0', '#F9F0F3'] as const,
+  ['#F3EFF9', '#E8DFF5', '#F0E8F5', '#F3EFF9'] as const,
+  ['#EFF6F5', '#E5F1F0', '#EAF3EE', '#EFF6F5'] as const,
+] as const;
 
 function getDateKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -42,7 +46,8 @@ function formatMonthYear(date: Date): string {
 function ArticleInsightBlock({ insight, index }: { insight: ArticleInsight; index: number }) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
-  const cardColor = SUMMARY_COLORS[insight.colorIndex != null ? insight.colorIndex % SUMMARY_COLORS.length : index % SUMMARY_COLORS.length];
+  const gradientIdx = insight.colorIndex != null ? insight.colorIndex % SUMMARY_GRADIENT_SETS.length : index % SUMMARY_GRADIENT_SETS.length;
+  const gradientColors = SUMMARY_GRADIENT_SETS[gradientIdx];
 
   useEffect(() => {
     Animated.parallel([
@@ -78,13 +83,18 @@ function ArticleInsightBlock({ insight, index }: { insight: ArticleInsight; inde
         </View>
       </View>
 
-      <View style={[styles.summaryCard, { backgroundColor: cardColor }]}>
+      <LinearGradient
+        colors={[...gradientColors]}
+        start={{ x: 0.2, y: 0 }}
+        end={{ x: 0.8, y: 1 }}
+        style={styles.summaryCard}
+      >
         <Text style={styles.summaryLabel}>Brief Summary</Text>
         <Text style={styles.summaryText}>{insight.summary}</Text>
         <Text style={styles.summaryTime}>
           {new Date(insight.generatedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
         </Text>
-      </View>
+      </LinearGradient>
 
       {insight.keyTakeaways.length > 0 && (
         <View style={styles.insightsSection}>
@@ -102,7 +112,11 @@ function ArticleInsightBlock({ insight, index }: { insight: ArticleInsight; inde
             keyExtractor={(_, i) => `${insight.id}_takeaway_${i}`}
             contentContainerStyle={styles.insightsScrollContent}
             renderItem={({ item, index: tIdx }) => (
-              <View style={[styles.insightChip, { backgroundColor: cardColor }]}>
+              <LinearGradient
+                colors={[...gradientColors]}
+                start={{ x: 0.1, y: 0 }}
+                end={{ x: 0.9, y: 1 }}
+                style={styles.insightChip}>
                 <View style={styles.insightChipContent}>
                   <Text style={styles.insightChipText}>{item}</Text>
                 </View>
@@ -110,7 +124,7 @@ function ArticleInsightBlock({ insight, index }: { insight: ArticleInsight; inde
                   <Sparkles size={11} color={Colors.textSecondary} />
                   <Text style={styles.insightChipIndex}>Insight {tIdx + 1}</Text>
                 </View>
-              </View>
+              </LinearGradient>
             )}
           />
         </View>
@@ -354,8 +368,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     paddingHorizontal: 12,
     paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
   },
   weekDayItem: {
     alignItems: 'center',
