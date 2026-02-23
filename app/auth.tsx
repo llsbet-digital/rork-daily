@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { TrendingUp } from 'lucide-react-native';
+import { Image } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 import { useApp } from '@/providers/AppProvider';
@@ -80,10 +80,12 @@ export default function AuthScreen() {
     >
       <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
         <View style={styles.logoSection}>
-          <View style={styles.iconCircle}>
-            <TrendingUp size={40} color={Colors.primary} strokeWidth={2} />
-          </View>
-          <Text style={styles.title}>Daily</Text>
+          <Image
+            source={require('@/assets/images/logo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.title}>Paprr</Text>
           <Text style={styles.subtitle}>
             {mode === 'signin' ? 'Welcome back' : 'Create your account'}
           </Text>
@@ -181,13 +183,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 40,
   },
-  iconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: Colors.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
+  logo: {
+    width: 100,
+    height: 100,
     marginBottom: 16,
   },
   title: {

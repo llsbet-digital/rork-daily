@@ -1,8 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { TrendingUp } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 
 export default function OnboardingWelcome() {
@@ -30,10 +29,12 @@ export default function OnboardingWelcome() {
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <View style={styles.content}>
         <Animated.View style={[styles.centerContent, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-          <View style={styles.iconCircle}>
-            <TrendingUp size={48} color={Colors.primary} strokeWidth={2} />
-          </View>
-          <Text style={styles.title}>Daily</Text>
+          <Image
+            source={require('@/assets/images/logo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.title}>Paprr</Text>
           <Text style={styles.subtitle}>
             Your AI-curated daily briefing.{'\n'}Cut through the noise.
           </Text>
@@ -68,13 +69,9 @@ const styles = StyleSheet.create({
   centerContent: {
     alignItems: 'center',
   },
-  iconCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: Colors.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
+  logo: {
+    width: 120,
+    height: 120,
     marginBottom: 24,
   },
   title: {
