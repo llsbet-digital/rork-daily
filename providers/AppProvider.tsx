@@ -510,6 +510,7 @@ Respond in this exact JSON format:
         summary: result.summary,
         keyTakeaways: result.keyTakeaways || [],
         generatedAt: new Date().toISOString(),
+        colorIndex: Math.floor(Math.random() * 3),
       };
 
       setInsights(prev => {

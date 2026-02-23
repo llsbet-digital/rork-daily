@@ -47,6 +47,7 @@ export interface ArticleInsight {
   summary: string;
   keyTakeaways: string[];
   generatedAt: string;
+  colorIndex: number;
 }
 
 export type AuthMode = 'signin' | 'signup';

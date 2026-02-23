@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useEffect, useCallback, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Sparkles, Lightbulb, BookOpen } from 'lucide-react-native';
+import { Sparkles, Lightbulb, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 import { useApp } from '@/providers/AppProvider';
 import { ArticleInsight } from '@/types';
@@ -20,33 +21,28 @@ import { LinearGradient } from 'expo-linear-gradient';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const INSIGHT_CARD_WIDTH = SCREEN_WIDTH * 0.6;
 
-const GRADIENT_SETS = [
-  ['#F9EDF0', '#F5E0E4', '#F7EADF'],
-  ['#F0E8F3', '#F5E2E6', '#F9EDE5'],
-  ['#F5EADF', '#F7E4E0', '#F3E8F0'],
-  ['#EDE8F5', '#F2E0EC', '#F7EAE4'],
-] as const;
+const SUMMARY_COLORS = ['#E8DFF5', '#F5E6D3', '#E5F1F0'] as const;
 
-function formatDayLabel(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const insightDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const diffMs = today.getTime() - insightDay.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+function getDateKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
 
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) {
-    return date.toLocaleDateString('en-US', { weekday: 'long' });
-  }
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+function getWeekStart(date: Date): Date {
+  const d = new Date(date);
+  const day = d.getDay();
+  d.setDate(d.getDate() - day);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function formatMonthYear(date: Date): string {
+  return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 }
 
 function ArticleInsightBlock({ insight, index }: { insight: ArticleInsight; index: number }) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
-  const gradientColors = GRADIENT_SETS[index % GRADIENT_SETS.length];
+  const cardColor = SUMMARY_COLORS[insight.colorIndex != null ? insight.colorIndex % SUMMARY_COLORS.length : index % SUMMARY_COLORS.length];
 
   useEffect(() => {
     Animated.parallel([
@@ -82,18 +78,13 @@ function ArticleInsightBlock({ insight, index }: { insight: ArticleInsight; inde
         </View>
       </View>
 
-      <LinearGradient
-        colors={[...gradientColors]}
-        start={{ x: 0.1, y: 0 }}
-        end={{ x: 0.9, y: 1 }}
-        style={styles.summaryCard}
-      >
+      <View style={[styles.summaryCard, { backgroundColor: cardColor }]}>
         <Text style={styles.summaryLabel}>Brief Summary</Text>
         <Text style={styles.summaryText}>{insight.summary}</Text>
         <Text style={styles.summaryTime}>
           {new Date(insight.generatedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
         </Text>
-      </LinearGradient>
+      </View>
 
       {insight.keyTakeaways.length > 0 && (
         <View style={styles.insightsSection}>
@@ -111,12 +102,7 @@ function ArticleInsightBlock({ insight, index }: { insight: ArticleInsight; inde
             keyExtractor={(_, i) => `${insight.id}_takeaway_${i}`}
             contentContainerStyle={styles.insightsScrollContent}
             renderItem={({ item, index: tIdx }) => (
-              <LinearGradient
-                colors={[...gradientColors]}
-                start={{ x: 0.1, y: 0 }}
-                end={{ x: 0.9, y: 1 }}
-                style={styles.insightChip}
-              >
+              <View style={[styles.insightChip, { backgroundColor: cardColor }]}>
                 <View style={styles.insightChipContent}>
                   <Text style={styles.insightChipText}>{item}</Text>
                 </View>
@@ -124,7 +110,7 @@ function ArticleInsightBlock({ insight, index }: { insight: ArticleInsight; inde
                   <Sparkles size={11} color={Colors.textSecondary} />
                   <Text style={styles.insightChipIndex}>Insight {tIdx + 1}</Text>
                 </View>
-              </LinearGradient>
+              </View>
             )}
           />
         </View>
@@ -139,6 +125,9 @@ export default function InsightsScreen() {
   const { user, insights } = useApp();
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
+  const [selectedDate, setSelectedDate] = useState<string>(() => getDateKey(new Date()));
+  const [weekOffset, setWeekOffset] = useState<number>(0);
+
   useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
@@ -147,51 +136,78 @@ export default function InsightsScreen() {
     }).start();
   }, []);
 
-  const groupedInsights = useMemo(() => {
-    const groups: { label: string; date: string; items: ArticleInsight[] }[] = [];
-    const sorted = [...insights].sort(
-      (a, b) => new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime()
-    );
+  const todayKey = useMemo(() => getDateKey(new Date()), []);
 
-    for (const insight of sorted) {
-      const dayKey = new Date(insight.generatedAt).toISOString().split('T')[0];
-      const existing = groups.find(g => g.date === dayKey);
-      if (existing) {
-        existing.items.push(insight);
-      } else {
-        groups.push({
-          label: formatDayLabel(insight.generatedAt),
-          date: dayKey,
-          items: [insight],
-        });
-      }
-    }
-    return groups;
-  }, [insights]);
-
-  const getWeekDays = useCallback(() => {
+  const weekDays = useMemo(() => {
     const today = new Date();
-    const dayOfWeek = today.getDay();
-    const days: { label: string; date: number; isToday: boolean; hasInsights: boolean }[] = [];
+    const baseWeekStart = getWeekStart(today);
+    const weekStart = new Date(baseWeekStart);
+    weekStart.setDate(weekStart.getDate() + weekOffset * 7);
+
     const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - dayOfWeek);
+    const days: { label: string; dateNum: number; dateKey: string; isToday: boolean; isSelected: boolean; hasInsights: boolean; isFuture: boolean }[] = [];
+
     for (let i = 0; i < 7; i++) {
-      const d = new Date(startOfWeek);
-      d.setDate(startOfWeek.getDate() + i);
-      const dayKey = d.toISOString().split('T')[0];
+      const d = new Date(weekStart);
+      d.setDate(weekStart.getDate() + i);
+      const dayKey = getDateKey(d);
       const hasInsights = insights.some(ins => ins.generatedAt.startsWith(dayKey));
+      const isFuture = d.getTime() > new Date().setHours(23, 59, 59, 999);
       days.push({
         label: dayLabels[i],
-        date: d.getDate(),
-        isToday: i === dayOfWeek,
+        dateNum: d.getDate(),
+        dateKey: dayKey,
+        isToday: dayKey === todayKey,
+        isSelected: dayKey === selectedDate,
         hasInsights,
+        isFuture,
       });
     }
     return days;
-  }, [insights]);
+  }, [weekOffset, insights, selectedDate, todayKey]);
 
-  const weekDays = getWeekDays();
+  const currentMonthLabel = useMemo(() => {
+    const today = new Date();
+    const baseWeekStart = getWeekStart(today);
+    const weekStart = new Date(baseWeekStart);
+    weekStart.setDate(weekStart.getDate() + weekOffset * 7);
+    const midWeek = new Date(weekStart);
+    midWeek.setDate(midWeek.getDate() + 3);
+    return formatMonthYear(midWeek);
+  }, [weekOffset]);
+
+  const filteredInsights = useMemo(() => {
+    return insights
+      .filter(ins => ins.generatedAt.startsWith(selectedDate))
+      .sort((a, b) => new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime());
+  }, [insights, selectedDate]);
+
+  const handleDayPress = useCallback((dayKey: string, isFuture: boolean) => {
+    if (isFuture) return;
+    setSelectedDate(dayKey);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, []);
+
+  const handlePrevWeek = useCallback(() => {
+    setWeekOffset(prev => prev - 1);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, []);
+
+  const handleNextWeek = useCallback(() => {
+    if (weekOffset >= 0) return;
+    setWeekOffset(prev => prev + 1);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, [weekOffset]);
+
+  const selectedDateLabel = useMemo(() => {
+    if (selectedDate === todayKey) return 'Today';
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (selectedDate === getDateKey(yesterday)) return 'Yesterday';
+    const d = new Date(selectedDate + 'T12:00:00');
+    return d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+  }, [selectedDate, todayKey]);
+
   const initials = user?.name ? user.name.charAt(0).toUpperCase() : user?.email ? user.email.charAt(0).toUpperCase() : 'U';
 
   return (
@@ -215,19 +231,51 @@ export default function InsightsScreen() {
           <View style={{ width: 38 }} />
         </View>
 
+        <View style={styles.weekNavRow}>
+          <TouchableOpacity onPress={handlePrevWeek} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <ChevronLeft size={20} color={Colors.text} />
+          </TouchableOpacity>
+          <Text style={styles.monthLabel}>{currentMonthLabel}</Text>
+          <TouchableOpacity
+            onPress={handleNextWeek}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            disabled={weekOffset >= 0}
+          >
+            <ChevronRight size={20} color={weekOffset >= 0 ? Colors.textMuted : Colors.text} />
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.weekRow}>
           {weekDays.map((day) => (
-            <View key={day.label} style={styles.weekDayItem}>
-              <Text style={[styles.weekDayLabel, day.isToday && styles.weekDayLabelActive]}>{day.label}</Text>
-              <View style={[styles.weekDayCircle, day.isToday && styles.weekDayCircleActive]}>
-                <Text style={[styles.weekDayDate, day.isToday && styles.weekDayDateActive]}>{day.date}</Text>
+            <TouchableOpacity
+              key={day.dateKey}
+              style={styles.weekDayItem}
+              onPress={() => handleDayPress(day.dateKey, day.isFuture)}
+              activeOpacity={day.isFuture ? 1 : 0.6}
+            >
+              <Text style={[
+                styles.weekDayLabel,
+                day.isSelected && styles.weekDayLabelActive,
+                day.isFuture && styles.weekDayLabelFuture,
+              ]}>{day.label}</Text>
+              <View style={[
+                styles.weekDayCircle,
+                day.isSelected && styles.weekDayCircleActive,
+                day.isToday && !day.isSelected && styles.weekDayCircleToday,
+              ]}>
+                <Text style={[
+                  styles.weekDayDate,
+                  day.isSelected && styles.weekDayDateActive,
+                  day.isToday && !day.isSelected && styles.weekDayDateToday,
+                  day.isFuture && styles.weekDayDateFuture,
+                ]}>{day.dateNum}</Text>
               </View>
-              {day.hasInsights && <View style={styles.weekDayDot} />}
-            </View>
+              {day.hasInsights && !day.isSelected && <View style={styles.weekDayDot} />}
+            </TouchableOpacity>
           ))}
         </View>
 
-        {insights.length === 0 ? (
+        {filteredInsights.length === 0 ? (
           <View style={styles.emptyContent}>
             <LinearGradient
               colors={['#F9EDF0', '#F5E0E4', '#F7EADF']}
@@ -237,7 +285,7 @@ export default function InsightsScreen() {
             >
               <Sparkles size={32} color={Colors.primary} />
             </LinearGradient>
-            <Text style={styles.emptyTitle}>No insights yet</Text>
+            <Text style={styles.emptyTitle}>No insights for {selectedDateLabel.toLowerCase()}</Text>
             <Text style={styles.emptySubtitle}>
               Tap the sparkle button on any article card to generate AI-powered summaries and key takeaways
             </Text>
@@ -247,13 +295,9 @@ export default function InsightsScreen() {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
           >
-            {groupedInsights.map((group) => (
-              <View key={group.date} style={styles.dayGroup}>
-                <Text style={styles.dayLabel}>{group.label}</Text>
-                {group.items.map((insight, idx) => (
-                  <ArticleInsightBlock key={insight.id} insight={insight} index={idx} />
-                ))}
-              </View>
+            <Text style={styles.dayLabel}>{selectedDateLabel}</Text>
+            {filteredInsights.map((insight, idx) => (
+              <ArticleInsightBlock key={insight.id} insight={insight} index={idx} />
             ))}
           </ScrollView>
         )}
@@ -292,10 +336,23 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: Colors.text,
   },
+  weekNavRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+  },
+  monthLabel: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: Colors.text,
+    letterSpacing: -0.2,
+  },
   weekRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
     paddingBottom: 14,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
@@ -303,6 +360,7 @@ const styles = StyleSheet.create({
   weekDayItem: {
     alignItems: 'center',
     gap: 6,
+    minWidth: 40,
   },
   weekDayLabel: {
     fontSize: 13,
@@ -313,15 +371,22 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontWeight: '600' as const,
   },
+  weekDayLabelFuture: {
+    opacity: 0.35,
+  },
   weekDayCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
   },
   weekDayCircleActive: {
     backgroundColor: Colors.text,
+  },
+  weekDayCircleToday: {
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
   },
   weekDayDate: {
     fontSize: 15,
@@ -331,6 +396,13 @@ const styles = StyleSheet.create({
   weekDayDateActive: {
     color: Colors.white,
     fontWeight: '700' as const,
+  },
+  weekDayDateToday: {
+    color: Colors.primary,
+    fontWeight: '600' as const,
+  },
+  weekDayDateFuture: {
+    opacity: 0.35,
   },
   weekDayDot: {
     width: 5,
@@ -344,13 +416,11 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     paddingTop: 8,
   },
-  dayGroup: {
-    marginTop: 20,
-  },
   dayLabel: {
     fontSize: 17,
     fontWeight: '700' as const,
     color: Colors.text,
+    marginTop: 16,
     marginBottom: 16,
     letterSpacing: -0.2,
   },
@@ -396,7 +466,7 @@ const styles = StyleSheet.create({
   summaryLabel: {
     fontSize: 11,
     fontWeight: '700' as const,
-    color: Colors.textMuted,
+    color: 'rgba(0,0,0,0.4)',
     textTransform: 'uppercase' as const,
     letterSpacing: 1,
     marginBottom: 10,
@@ -409,7 +479,7 @@ const styles = StyleSheet.create({
   },
   summaryTime: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: 'rgba(0,0,0,0.35)',
     marginTop: 14,
     textAlign: 'right' as const,
   },
@@ -486,6 +556,7 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: Colors.text,
     marginBottom: 8,
+    textAlign: 'center' as const,
   },
   emptySubtitle: {
     fontSize: 15,
