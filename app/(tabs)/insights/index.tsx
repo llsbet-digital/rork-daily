@@ -386,7 +386,7 @@ const styles = StyleSheet.create({
   },
   weekDayCircleToday: {
     borderWidth: 1.5,
-    borderColor: Colors.primary,
+    borderColor: Colors.text,
   },
   weekDayDate: {
     fontSize: 15,
@@ -398,7 +398,7 @@ const styles = StyleSheet.create({
     fontWeight: '700' as const,
   },
   weekDayDateToday: {
-    color: Colors.primary,
+    color: Colors.text,
     fontWeight: '600' as const,
   },
   weekDayDateFuture: {
