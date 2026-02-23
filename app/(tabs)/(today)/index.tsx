@@ -12,6 +12,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Crown, Sparkles, Bookmark, ThumbsUp, ThumbsDown, Loader } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import Colors from '@/constants/colors';
 import { useApp } from '@/providers/AppProvider';
@@ -219,19 +220,31 @@ export default function TodayScreen() {
       <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
         <View style={styles.topBar}>
           <TouchableOpacity
-            style={styles.avatarCircle}
             onPress={() => router.push('/settings' as any)}
             activeOpacity={0.7}
           >
-            <Text style={styles.avatarText}>{initials}</Text>
+            <LinearGradient
+              colors={['#F9EDF0', '#F5E0E4', '#F7EADF']}
+              start={{ x: 0.1, y: 0 }}
+              end={{ x: 0.9, y: 1 }}
+              style={styles.avatarCircle}
+            >
+              <Text style={styles.avatarText}>{initials}</Text>
+            </LinearGradient>
           </TouchableOpacity>
           <View style={{ flex: 1 }} />
           <TouchableOpacity
-            style={styles.crownButton}
             onPress={() => router.push('/premium' as any)}
             activeOpacity={0.7}
           >
-            <Crown size={22} color={Colors.primary} />
+            <LinearGradient
+              colors={['#F9EDF0', '#F5E0E4', '#F7EADF']}
+              start={{ x: 0.1, y: 0 }}
+              end={{ x: 0.9, y: 1 }}
+              style={styles.crownButton}
+            >
+              <Crown size={22} color={Colors.primary} />
+            </LinearGradient>
           </TouchableOpacity>
         </View>
 

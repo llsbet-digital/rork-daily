@@ -13,6 +13,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Search, Bookmark, ChevronRight, ThumbsUp, ThumbsDown } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '@/constants/colors';
 import { useApp } from '@/providers/AppProvider';
 import { Article } from '@/types';
@@ -135,11 +136,17 @@ export default function LibraryScreen() {
       <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
         <View style={styles.topBar}>
           <TouchableOpacity
-            style={styles.avatarCircle}
             onPress={() => router.push('/settings' as any)}
             activeOpacity={0.7}
           >
-            <Text style={styles.avatarText}>{initials}</Text>
+            <LinearGradient
+              colors={['#F9EDF0', '#F5E0E4', '#F7EADF']}
+              start={{ x: 0.1, y: 0 }}
+              end={{ x: 0.9, y: 1 }}
+              style={styles.avatarCircle}
+            >
+              <Text style={styles.avatarText}>{initials}</Text>
+            </LinearGradient>
           </TouchableOpacity>
           <Text style={styles.topBarTitle}>Library</Text>
           <View style={{ width: 38 }} />
@@ -158,9 +165,14 @@ export default function LibraryScreen() {
 
         {filteredArticles.length === 0 ? (
           <View style={styles.emptyState}>
-            <View style={styles.emptyIconCircle}>
+            <LinearGradient
+              colors={['#F9EDF0', '#F5E0E4', '#F7EADF']}
+              start={{ x: 0.1, y: 0 }}
+              end={{ x: 0.9, y: 1 }}
+              style={styles.emptyIconCircle}
+            >
               <Bookmark size={40} color={Colors.primary} />
-            </View>
+            </LinearGradient>
             <Text style={styles.emptyTitle}>No Saved Articles</Text>
             <Text style={styles.emptySubtitle}>
               Articles you save will appear here.{'\n'}Tap the bookmark icon on any article.
