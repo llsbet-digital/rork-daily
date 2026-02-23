@@ -111,12 +111,11 @@ function ArticleInsightBlock({ insight, index }: { insight: ArticleInsight; inde
             keyExtractor={(_, i) => `${insight.id}_takeaway_${i}`}
             contentContainerStyle={styles.insightsScrollContent}
             renderItem={({ item, index: tIdx }) => (
-              <View
-                style={[
-                  styles.insightChip,
-                  { backgroundColor: `${gradientColors[tIdx % gradientColors.length]}40` },
-                  { borderColor: `${gradientColors[tIdx % gradientColors.length]}90` },
-                ]}
+              <LinearGradient
+                colors={[...gradientColors]}
+                start={{ x: 0.1, y: 0 }}
+                end={{ x: 0.9, y: 1 }}
+                style={styles.insightChip}
               >
                 <View style={styles.insightChipContent}>
                   <Text style={styles.insightChipText}>{item}</Text>
@@ -125,7 +124,7 @@ function ArticleInsightBlock({ insight, index }: { insight: ArticleInsight; inde
                   <Sparkles size={11} color={Colors.textSecondary} />
                   <Text style={styles.insightChipIndex}>Insight {tIdx + 1}</Text>
                 </View>
-              </View>
+              </LinearGradient>
             )}
           />
         </View>
@@ -444,7 +443,6 @@ const styles = StyleSheet.create({
   insightChip: {
     width: INSIGHT_CARD_WIDTH,
     borderRadius: 16,
-    borderWidth: 1.5,
     padding: 16,
     justifyContent: 'space-between',
   },
