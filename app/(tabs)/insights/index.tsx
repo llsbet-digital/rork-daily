@@ -232,14 +232,9 @@ export default function InsightsScreen() {
             onPress={() => router.push('/settings' as any)}
             activeOpacity={0.7}
           >
-            <LinearGradient
-              colors={['#F9EDF0', '#F5E0E4', '#F7EADF']}
-              start={{ x: 0.1, y: 0 }}
-              end={{ x: 0.9, y: 1 }}
-              style={styles.avatarCircle}
-            >
+            <View style={styles.avatarCircle}>
               <Text style={styles.avatarText}>{initials}</Text>
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
           <Text style={styles.topBarTitle}>Insights</Text>
           <View style={{ width: 38 }} />
@@ -336,14 +331,16 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.background,
+    borderWidth: 1.5,
+    borderColor: '#1A1A1A',
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
     fontSize: 16,
     fontWeight: '600' as const,
-    color: Colors.primary,
+    color: '#1A1A1A',
   },
   topBarTitle: {
     fontSize: 18,

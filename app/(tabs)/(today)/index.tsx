@@ -227,7 +227,8 @@ export default function TodayScreen() {
               <Text style={styles.avatarText}>{initials}</Text>
             </View>
           </TouchableOpacity>
-          <View style={{ flex: 1 }} />
+          <Text style={styles.topBarTitle}>Today</Text>
+          <View style={{ width: 38 }} />
         </View>
 
 
@@ -235,10 +236,6 @@ export default function TodayScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-
-
-          <Text style={styles.sectionTitle}>Today's Featured</Text>
-
           <View style={styles.articlesSection}>
             {articlesLoading && dailyArticles.length === 0 ? (
               <>
