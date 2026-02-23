@@ -197,6 +197,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600' as const,
     color: Colors.text,
+    fontFamily: 'CrimsonText_600SemiBold',
   },
   scrollContent: {
     paddingHorizontal: 20,

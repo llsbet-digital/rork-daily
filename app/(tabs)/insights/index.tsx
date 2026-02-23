@@ -346,6 +346,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600' as const,
     color: Colors.text,
+    fontFamily: 'CrimsonText_600SemiBold',
   },
   weekNavRow: {
     flexDirection: 'row',
@@ -432,6 +433,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 16,
     letterSpacing: -0.2,
+    fontFamily: 'CrimsonText_700Bold',
   },
   articleBlock: {
     marginBottom: 28,
@@ -455,6 +457,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
     flex: 1,
     letterSpacing: -0.2,
+    fontFamily: 'CrimsonText_600SemiBold',
   },
   categoryPill: {
     backgroundColor: Colors.primaryLight,
@@ -566,6 +569,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
     marginBottom: 8,
     textAlign: 'center' as const,
+    fontFamily: 'CrimsonText_600SemiBold',
   },
   emptySubtitle: {
     fontSize: 15,

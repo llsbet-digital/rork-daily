@@ -346,6 +346,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 12,
     lineHeight: 38,
+    fontFamily: 'CrimsonText_700Bold',
   },
   subtitle: {
     fontSize: 15,

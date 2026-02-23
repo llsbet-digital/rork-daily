@@ -120,6 +120,7 @@ const styles = StyleSheet.create({
     fontWeight: '700' as const,
     color: Colors.text,
     marginBottom: 8,
+    fontFamily: 'CrimsonText_700Bold',
   },
   stepDescription: {
     fontSize: 15,

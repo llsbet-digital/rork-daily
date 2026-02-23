@@ -304,6 +304,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600' as const,
     color: Colors.text,
+    fontFamily: 'CrimsonText_600SemiBold',
   },
 
   scrollContent: {
@@ -316,6 +317,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 16,
     marginTop: 4,
+    fontFamily: 'CrimsonText_700Bold',
   },
   articlesSection: {
     paddingHorizontal: 20,
@@ -350,6 +352,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     lineHeight: 30,
     letterSpacing: -0.3,
+    fontFamily: 'CrimsonText_700Bold',
   },
   articleSummary: {
     fontSize: 14,
@@ -427,6 +430,7 @@ const styles = StyleSheet.create({
     fontWeight: '700' as const,
     color: Colors.text,
     marginBottom: 8,
+    fontFamily: 'CrimsonText_700Bold',
   },
   emptySubtitle: {
     fontSize: 14,

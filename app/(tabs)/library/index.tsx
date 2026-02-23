@@ -225,6 +225,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600' as const,
     color: Colors.text,
+    fontFamily: 'CrimsonText_600SemiBold',
   },
   searchContainer: {
     flexDirection: 'row',
@@ -264,6 +265,7 @@ const styles = StyleSheet.create({
     fontWeight: '700' as const,
     color: Colors.text,
     marginBottom: 8,
+    fontFamily: 'CrimsonText_700Bold',
   },
   emptySubtitle: {
     fontSize: 15,
@@ -304,6 +306,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     lineHeight: 30,
     letterSpacing: -0.3,
+    fontFamily: 'CrimsonText_700Bold',
   },
   feedbackRow: {
     flexDirection: 'row',

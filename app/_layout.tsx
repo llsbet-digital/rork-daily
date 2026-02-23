@@ -3,6 +3,12 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { useFonts } from "expo-font";
+import {
+  CrimsonText_400Regular,
+  CrimsonText_600SemiBold,
+  CrimsonText_700Bold,
+} from "@expo-google-fonts/crimson-text";
 import { AppProvider, useApp } from "@/providers/AppProvider";
 import Colors from "@/constants/colors";
 
@@ -54,10 +60,21 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   const [queryClient] = useState(() => new QueryClient());
+  const [fontsLoaded] = useFonts({
+    CrimsonText_400Regular,
+    CrimsonText_600SemiBold,
+    CrimsonText_700Bold,
+  });
 
   useEffect(() => {
-    SplashScreen.hideAsync();
-  }, []);
+    if (fontsLoaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return (
     <QueryClientProvider client={queryClient}>

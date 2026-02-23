@@ -83,6 +83,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
     marginBottom: 12,
     letterSpacing: -0.5,
+    fontFamily: 'CrimsonText_700Bold',
   },
   subtitle: {
     fontSize: 16,
