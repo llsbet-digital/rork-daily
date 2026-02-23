@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Crown, Sparkles, Bookmark, ThumbsUp, ThumbsDown, Loader } from 'lucide-react-native';
+import { Sparkles, Bookmark, ThumbsUp, ThumbsDown, Loader } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -81,8 +81,8 @@ function ArticleCard({ article, onSave, onRead, onFeedback, onGenerateInsight, i
           >
             <Bookmark
               size={18}
-              color={article.isSaved ? Colors.primary : 'rgba(0,0,0,0.35)'}
-              fill={article.isSaved ? Colors.primary : 'transparent'}
+              color={article.isSaved ? '#1A1A1A' : 'rgba(0,0,0,0.35)'}
+              fill={article.isSaved ? '#1A1A1A' : 'transparent'}
             />
           </TouchableOpacity>
         </View>
@@ -103,8 +103,8 @@ function ArticleCard({ article, onSave, onRead, onFeedback, onGenerateInsight, i
           >
             <ThumbsUp
               size={15}
-              color={article.feedback === 'up' ? Colors.primary : 'rgba(0,0,0,0.3)'}
-              fill={article.feedback === 'up' ? Colors.primary : 'transparent'}
+              color={article.feedback === 'up' ? '#1A1A1A' : 'rgba(0,0,0,0.3)'}
+              fill={article.feedback === 'up' ? '#1A1A1A' : 'transparent'}
             />
           </TouchableOpacity>
           <TouchableOpacity
@@ -135,10 +135,10 @@ function ArticleCard({ article, onSave, onRead, onFeedback, onGenerateInsight, i
         >
           {isGenerating ? (
             <Animated.View style={{ transform: [{ rotate: spin }] }}>
-              <Sparkles size={18} color={Colors.primary} />
+              <Sparkles size={18} color={'#1A1A1A'} />
             </Animated.View>
           ) : (
-            <Sparkles size={18} color={hasInsight ? Colors.white : Colors.text} fill={hasInsight ? Colors.white : 'transparent'} />
+            <Sparkles size={18} color={hasInsight ? Colors.white : '#1A1A1A'} fill={hasInsight ? Colors.white : 'transparent'} />
           )}
         </TouchableOpacity>
       </View>
@@ -223,29 +223,11 @@ export default function TodayScreen() {
             onPress={() => router.push('/settings' as any)}
             activeOpacity={0.7}
           >
-            <LinearGradient
-              colors={['#F9EDF0', '#F5E0E4', '#F7EADF']}
-              start={{ x: 0.1, y: 0 }}
-              end={{ x: 0.9, y: 1 }}
-              style={styles.avatarCircle}
-            >
+            <View style={styles.avatarCircle}>
               <Text style={styles.avatarText}>{initials}</Text>
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
           <View style={{ flex: 1 }} />
-          <TouchableOpacity
-            onPress={() => router.push('/premium' as any)}
-            activeOpacity={0.7}
-          >
-            <LinearGradient
-              colors={['#F9EDF0', '#F5E0E4', '#F7EADF']}
-              start={{ x: 0.1, y: 0 }}
-              end={{ x: 0.9, y: 1 }}
-              style={styles.crownButton}
-            >
-              <Crown size={22} color={Colors.primary} />
-            </LinearGradient>
-          </TouchableOpacity>
         </View>
 
 
@@ -310,28 +292,23 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.background,
+    borderWidth: 1.5,
+    borderColor: '#1A1A1A',
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
     fontSize: 16,
     fontWeight: '600' as const,
-    color: Colors.primary,
+    color: '#1A1A1A',
   },
   topBarTitle: {
     fontSize: 18,
     fontWeight: '600' as const,
     color: Colors.text,
   },
-  crownButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: Colors.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+
   scrollContent: {
     paddingBottom: 40,
   },
