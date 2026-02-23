@@ -9,6 +9,7 @@ const Colors = {
   textMuted: '#B5B5B5',
   border: '#F0E0E4',
   inputBackground: '#F8F7F5',
+  inputBorder: '#A5A7A9',
   dark: '#1A1A1A',
   white: '#FFFFFF',
   success: '#4CAF50',

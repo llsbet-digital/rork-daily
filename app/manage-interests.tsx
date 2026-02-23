@@ -136,7 +136,7 @@ const rowStyles = StyleSheet.create({
     borderRadius: 22,
     backgroundColor: Colors.cardBackground,
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: Colors.inputBorder,
   },
   badgeSelected: {
     backgroundColor: Colors.primary,
@@ -448,6 +448,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 4,
     gap: 10,
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
   },
   input: {
     flex: 1,
