@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Sparkles, Lightbulb, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { Lightbulb, BookOpen, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react-native';
+import { Image } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 import { useApp } from '@/providers/AppProvider';
@@ -286,14 +287,11 @@ export default function InsightsScreen() {
 
         {filteredInsights.length === 0 ? (
           <View style={styles.emptyContent}>
-            <LinearGradient
-              colors={['#F9EDF0', '#F5E0E4', '#F7EADF']}
-              start={{ x: 0.1, y: 0 }}
-              end={{ x: 0.9, y: 1 }}
-              style={styles.emptyIconCircle}
-            >
-              <Sparkles size={32} color={Colors.primary} />
-            </LinearGradient>
+            <Image
+              source={require('@/assets/images/insights-empty.png')}
+              style={styles.emptyImage}
+              resizeMode="contain"
+            />
             <Text style={styles.emptyTitle}>No insights for {selectedDateLabel.toLowerCase()}</Text>
             <Text style={styles.emptySubtitle}>
               Tap the sparkle button on any article card to generate AI-powered summaries and key takeaways
@@ -554,13 +552,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 40,
   },
-  emptyIconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: Colors.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
+  emptyImage: {
+    width: 140,
+    height: 140,
     marginBottom: 20,
   },
   emptyTitle: {
