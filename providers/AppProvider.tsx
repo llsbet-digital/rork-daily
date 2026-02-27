@@ -48,16 +48,36 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
   useEffect(() => {
     console.log('[App] Initializing Supabase auth listener');
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
+    supabase.auth.getSession().then(({ data: { session: s }, error }) => {
+      if (error) {
+        console.log('[App] getSession error:', error.message);
+        supabase.auth.signOut().catch(() => {});
+        setSession(null);
+        setUser(null);
+        setIsAuthenticated(false);
+        setIsOnboarded(false);
+        setIsLoading(false);
+        return;
+      }
       console.log('[App] Initial session:', s?.user?.id ?? 'none');
       setSession(s);
       if (!s) {
         setIsLoading(false);
       }
+    }).catch((err) => {
+      console.log('[App] getSession unexpected error:', err);
+      setSession(null);
+      setIsLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
       console.log('[App] Auth state changed:', _event, s?.user?.id ?? 'none');
+
+      if (_event === 'TOKEN_REFRESHED' && !s) {
+        console.log('[App] Token refresh failed, signing out');
+        supabase.auth.signOut().catch(() => {});
+      }
+
       setSession(s);
       if (!s) {
         setUser(null);
@@ -76,6 +96,14 @@ export const [AppProvider, useApp] = createContextHook(() => {
     queryFn: async () => {
       if (!session?.user?.id) return null;
       console.log('[App] Fetching profile for:', session.user.id);
+
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      if (!currentSession) {
+        console.log('[App] Session expired during profile fetch, signing out');
+        await supabase.auth.signOut().catch(() => {});
+        return null;
+      }
+
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -84,6 +112,11 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
       if (error) {
         console.log('[App] Profile fetch error:', error.message);
+        if (error.message?.includes('Refresh Token') || error.message?.includes('JWT')) {
+          console.log('[App] Auth token invalid, signing out');
+          await supabase.auth.signOut().catch(() => {});
+          return null;
+        }
         if (error.code === 'PGRST116') {
           console.log('[App] No profile found, creating one');
           const { data: newProfile, error: createError } = await supabase
