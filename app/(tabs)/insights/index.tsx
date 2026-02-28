@@ -90,7 +90,7 @@ function ArticleInsightBlock({ insight, index }: { insight: ArticleInsight; inde
         end={{ x: 0.8, y: 1 }}
         style={styles.summaryCard}
       >
-        <Text style={styles.summaryLabel}>Brief Summary</Text>
+        <Text style={styles.summaryLabel}>Core Insight</Text>
         <Text style={styles.summaryText}>{insight.summary}</Text>
         <Text style={styles.summaryTime}>
           {new Date(insight.generatedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
@@ -102,9 +102,9 @@ function ArticleInsightBlock({ insight, index }: { insight: ArticleInsight; inde
           <View style={styles.insightsSectionHeader}>
             <View style={styles.insightsSectionTitleRow}>
               <Lightbulb size={15} color={Colors.primary} />
-              <Text style={styles.insightsSectionTitle}>Key Insights</Text>
+              <Text style={styles.insightsSectionTitle}>Key Learnings</Text>
             </View>
-            <Text style={styles.insightsCount}>{insight.keyTakeaways.length} insights</Text>
+            <Text style={styles.insightsCount}>{insight.keyTakeaways.length} learnings</Text>
           </View>
           <FlatList
             horizontal
@@ -123,7 +123,7 @@ function ArticleInsightBlock({ insight, index }: { insight: ArticleInsight; inde
                 </View>
                 <View style={styles.insightChipFooter}>
                   <Sparkles size={11} color={Colors.textSecondary} />
-                  <Text style={styles.insightChipIndex}>Insight {tIdx + 1}</Text>
+                  <Text style={styles.insightChipIndex}>Learning {tIdx + 1}</Text>
                 </View>
               </LinearGradient>
             )}
@@ -294,7 +294,7 @@ export default function InsightsScreen() {
             />
             <Text style={styles.emptyTitle}>No insights for {selectedDateLabel.toLowerCase()}</Text>
             <Text style={styles.emptySubtitle}>
-              Tap the sparkle button on any article card to generate AI-powered summaries and key takeaways
+              Tap the sparkle button on any article card to extract key learnings and highlights
             </Text>
           </View>
         ) : (

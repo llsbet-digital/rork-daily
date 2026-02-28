@@ -246,7 +246,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
   const loadArticlesForUser = useCallback(async (interests: string[], isPremium: boolean) => {
     if (!interests || interests.length === 0) return;
-    const count = isPremium ? 7 : 3;
+    const count = isPremium ? 5 : 3;
     setArticlesLoading(true);
     try {
       const fetched = await fetchDailyArticles(interests, count);
@@ -266,7 +266,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     }
   }, [user?.id, isOnboarded]);
 
-  const maxDailyReads = user?.isPremium ? 7 : 3;
+  const maxDailyReads = user?.isPremium ? 5 : 3;
   const maxDailySaves = 3;
 
   const signUp = useCallback(async (email: string, password: string, name: string) => {
@@ -379,8 +379,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
         .eq('id', session.user.id);
     }
     if (isPremium && !wasPremium && user?.interests && user.interests.length > 0) {
-      console.log('[App] User upgraded to premium, fetching 4 additional articles');
-      const additional = await fetchAdditionalArticles(user.interests, 4, articles);
+      console.log('[App] User upgraded to premium, fetching 2 additional articles');
+      const additional = await fetchAdditionalArticles(user.interests, 2, articles);
       if (additional.length > 0) {
         setArticles(prev => [...prev, ...additional]);
       }
@@ -500,18 +500,18 @@ export const [AppProvider, useApp] = createContextHook(() => {
           messages: [
             {
               role: 'system',
-              content: 'You are a helpful assistant that analyzes articles. Always respond with valid JSON matching the requested format.',
+              content: 'You are a reading assistant that extracts the most highlightable, memorable learnings from articles. Focus on specific insights a reader would underline — not generic summaries. Always respond with valid JSON matching the requested format.',
             },
             {
               role: 'user',
-              content: `Analyze this article and provide a concise summary and key takeaways.
+              content: `Read this article and extract the most important learnings — the kind of lines a reader would highlight or underline. These should be specific, insightful statements, not generic summaries.
 
 Title: ${article.title}
 Category: ${article.category}
 Content: ${article.content || article.summary}
 
 Respond in this exact JSON format:
-{"summary": "A concise 2-3 sentence summary", "keyTakeaways": ["takeaway 1", "takeaway 2", "takeaway 3"]}`,
+{"summary": "One compelling sentence capturing the core insight", "keyTakeaways": ["A specific highlightable learning", "Another key insight worth remembering", "A third actionable or thought-provoking takeaway"]}`,
             },
           ],
           response_format: { type: 'json_object' },
