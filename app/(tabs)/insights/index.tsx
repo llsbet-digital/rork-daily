@@ -458,10 +458,12 @@ const styles = StyleSheet.create({
     fontFamily: 'CrimsonText_600SemiBold',
   },
   categoryPill: {
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.background,
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.primary,
   },
   categoryPillText: {
     fontSize: 12,
