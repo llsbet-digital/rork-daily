@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,6 +21,7 @@ import {
   Flame,
   User,
   ChevronRight,
+  Trash2,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
@@ -28,13 +30,36 @@ import { useApp } from '@/providers/AppProvider';
 export default function SettingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user, signOut, maxDailyReads, maxDailySaves } = useApp();
+  const { user, signOut, deleteAccount, maxDailyReads, maxDailySaves } = useApp();
 
   const handleSignOut = React.useCallback(async () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     await signOut();
     router.replace('/auth' as any);
   }, [signOut, router]);
+
+  const handleDeleteAccount = React.useCallback(() => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    Alert.alert(
+      'Delete Account',
+      'This will permanently delete your account and all your data. This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteAccount();
+              router.replace('/auth' as any);
+            } catch {
+              Alert.alert('Error', 'Failed to delete account. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  }, [deleteAccount, router]);
 
   const initials = user?.name ? user.name.charAt(0).toUpperCase() : user?.email ? user.email.charAt(0).toUpperCase() : 'U';
 
@@ -137,6 +162,18 @@ export default function SettingsScreen() {
             <View style={styles.settingLeft}>
               <LogOut size={20} color={Colors.textSecondary} />
               <Text style={styles.settingText}>Sign Out</Text>
+            </View>
+            <ChevronRight size={18} color={Colors.textMuted} />
+          </TouchableOpacity>
+          <View style={styles.divider} />
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={handleDeleteAccount}
+            activeOpacity={0.7}
+          >
+            <View style={styles.settingLeft}>
+              <Trash2 size={20} color={Colors.error} />
+              <Text style={[styles.settingText, styles.deleteText]}>Delete Account</Text>
             </View>
             <ChevronRight size={18} color={Colors.textMuted} />
           </TouchableOpacity>
@@ -280,5 +317,8 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: Colors.border,
     marginLeft: 48,
+  },
+  deleteText: {
+    color: Colors.error,
   },
 });

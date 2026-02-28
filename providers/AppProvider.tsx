@@ -341,6 +341,41 @@ export const [AppProvider, useApp] = createContextHook(() => {
     await clearArticleCache();
   }, [queryClient]);
 
+  const deleteAccount = useCallback(async () => {
+    if (!session?.user?.id) throw new Error('Not authenticated');
+    console.log('[App] Deleting account:', session.user.id);
+
+    const { error } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', session.user.id);
+
+    if (error) {
+      console.log('[App] Profile delete error:', error.message);
+      throw new Error(error.message);
+    }
+
+    await AsyncStorage.multiRemove([
+      STORAGE_KEYS.ARTICLES,
+      STORAGE_KEYS.SAVED_ARTICLES,
+      STORAGE_KEYS.INSIGHTS,
+    ]);
+
+    await logoutRC();
+    await supabase.auth.signOut();
+    setUser(null);
+    setIsAuthenticated(false);
+    setIsOnboarded(false);
+    setIsNewSignUp(false);
+    setArticles([]);
+    setLibraryArticles([]);
+    setInsights([]);
+    queryClient.removeQueries({ queryKey: ['profile'] });
+    queryClient.removeQueries({ queryKey: ['customerInfo'] });
+    await clearArticleCache();
+    console.log('[App] Account deleted');
+  }, [session, queryClient]);
+
   const completeOnboarding = useCallback(async (interests: string[]) => {
     if (!session?.user?.id) throw new Error('Not authenticated');
     console.log('[App] Completing onboarding with interests:', interests);
@@ -598,6 +633,7 @@ Respond in this exact JSON format:
     signUp,
     signIn,
     signOut,
+    deleteAccount,
     completeOnboarding,
     togglePremium,
     refreshCustomerInfo,
