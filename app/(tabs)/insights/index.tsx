@@ -23,9 +23,9 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const INSIGHT_CARD_WIDTH = SCREEN_WIDTH * 0.6;
 
 const SUMMARY_GRADIENT_SETS = [
-  ['#F9F0F3', '#F5DDE3', '#FAE8E0', '#F9F0F3'] as const,
-  ['#F3EFF9', '#E8DFF5', '#F0E8F5', '#F3EFF9'] as const,
-  ['#EFF6F5', '#E5F1F0', '#EAF3EE', '#EFF6F5'] as const,
+  ['#F5EDE3', '#EDE4D6', '#F0E6D8', '#F5EDE3'] as const,
+  ['#F3EBDF', '#E8DECE', '#EEDCCA', '#F3EBDF'] as const,
+  ['#F7F0E6', '#EDE3D3', '#F2E8DA', '#F7F0E6'] as const,
 ] as const;
 
 function getDateKey(date: Date): string {
