@@ -81,8 +81,8 @@ function ArticleCard({ article, onSave, onRead, onFeedback, onGenerateInsight, i
           >
             <Bookmark
               size={18}
-              color={article.isSaved ? '#1A1A1A' : 'rgba(0,0,0,0.35)'}
-              fill={article.isSaved ? '#1A1A1A' : 'transparent'}
+              color={article.isSaved ? Colors.primary : 'rgba(0,0,0,0.35)'}
+              fill={article.isSaved ? Colors.primary : 'transparent'}
             />
           </TouchableOpacity>
         </View>

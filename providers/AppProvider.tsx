@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import createContextHook from '@nkzw/create-context-hook';
 import { User, Article, ArticleInsight } from '@/types';
 import { fetchDailyArticles, fetchAdditionalArticles, clearArticleCache } from '@/lib/articles';
@@ -10,7 +10,6 @@ import { configureRevenueCat, getCustomerInfo, checkEntitlement, loginRC, logout
 
 const STORAGE_KEYS = {
   ARTICLES: 'daily_articles',
-  SAVED_ARTICLES: 'saved_articles_library',
   INSIGHTS: 'article_insights',
 } as const;
 
@@ -34,11 +33,9 @@ export const [AppProvider, useApp] = createContextHook(() => {
   const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
   const [articles, setArticles] = useState<Article[]>([]);
-  const [libraryArticles, setLibraryArticles] = useState<Article[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isOnboarded, setIsOnboarded] = useState<boolean>(false);
   const [todayReadsCompleted, setTodayReadsCompleted] = useState<number>(0);
-  const [todaySavesUsed, setTodaySavesUsed] = useState<number>(0);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isNewSignUp, setIsNewSignUp] = useState<boolean>(false);
@@ -167,6 +164,24 @@ export const [AppProvider, useApp] = createContextHook(() => {
     queryClient.invalidateQueries({ queryKey: ['customerInfo'] });
   }, [queryClient]);
 
+  const savedArticlesQuery = useQuery({
+    queryKey: ['savedArticles', session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) return [];
+      const { data, error } = await supabase
+        .from('saved_articles')
+        .select('article_id, article_data, saved_at')
+        .eq('user_id', session.user.id)
+        .order('saved_at', { ascending: false });
+      if (error) {
+        console.log('[App] Failed to load saved articles:', error.message);
+        return [];
+      }
+      return data as { article_id: string; article_data: Article; saved_at: string }[];
+    },
+    enabled: !!session?.user?.id,
+  });
+
   useEffect(() => {
     if (profileQuery.data) {
       const appUser = profileToUser(profileQuery.data);
@@ -195,28 +210,6 @@ export const [AppProvider, useApp] = createContextHook(() => {
     }
   }, [profileQuery.data, profileQuery.isError, profileQuery.isLoading, session, isNewSignUp, customerInfoQuery.data]);
 
-  const loadSavedArticles = useCallback(async () => {
-    try {
-      const stored = await AsyncStorage.getItem(STORAGE_KEYS.SAVED_ARTICLES);
-      if (stored) {
-        const parsed = JSON.parse(stored) as Article[];
-        setLibraryArticles(parsed);
-        console.log('[App] Loaded', parsed.length, 'saved articles from library');
-      }
-    } catch (e) {
-      console.log('[App] Failed to load saved articles:', e);
-    }
-  }, []);
-
-  const persistSavedArticles = useCallback(async (saved: Article[]) => {
-    try {
-      await AsyncStorage.setItem(STORAGE_KEYS.SAVED_ARTICLES, JSON.stringify(saved));
-      console.log('[App] Persisted', saved.length, 'articles to library');
-    } catch (e) {
-      console.log('[App] Failed to persist saved articles:', e);
-    }
-  }, []);
-
   const loadInsights = useCallback(async () => {
     try {
       const stored = await AsyncStorage.getItem(STORAGE_KEYS.INSIGHTS);
@@ -240,9 +233,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
   }, []);
 
   useEffect(() => {
-    loadSavedArticles();
     loadInsights();
-  }, [loadSavedArticles, loadInsights]);
+  }, [loadInsights]);
 
   const loadArticlesForUser = useCallback(async (interests: string[], isPremium: boolean) => {
     if (!interests || interests.length === 0) return;
@@ -267,7 +259,25 @@ export const [AppProvider, useApp] = createContextHook(() => {
   }, [user?.id, isOnboarded]);
 
   const maxDailyReads = user?.isPremium ? 5 : 3;
-  const maxDailySaves = 3;
+  const maxDailySaves = user?.isPremium ? 3 : 1;
+
+  // Derived from Supabase saved_articles — works cross-device
+  const savedArticleIds = useMemo(
+    () => new Set((savedArticlesQuery.data || []).map(r => r.article_id)),
+    [savedArticlesQuery.data]
+  );
+
+  const libraryArticles = useMemo(
+    () => (savedArticlesQuery.data || []).map(r => ({ ...(r.article_data as Article), isSaved: true })),
+    [savedArticlesQuery.data]
+  );
+
+  const todaySavesUsed = useMemo(() => {
+    if (!savedArticlesQuery.data) return 0;
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    return savedArticlesQuery.data.filter(r => new Date(r.saved_at) >= todayStart).length;
+  }, [savedArticlesQuery.data]);
 
   const signUp = useCallback(async (email: string, password: string, name: string) => {
     console.log('[App] Signing up:', email);
@@ -338,6 +348,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     setArticles([]);
     queryClient.removeQueries({ queryKey: ['profile'] });
     queryClient.removeQueries({ queryKey: ['customerInfo'] });
+    queryClient.removeQueries({ queryKey: ['savedArticles'] });
     await clearArticleCache();
   }, [queryClient]);
 
@@ -357,7 +368,6 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
     await AsyncStorage.multiRemove([
       STORAGE_KEYS.ARTICLES,
-      STORAGE_KEYS.SAVED_ARTICLES,
       STORAGE_KEYS.INSIGHTS,
     ]);
 
@@ -368,10 +378,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
     setIsOnboarded(false);
     setIsNewSignUp(false);
     setArticles([]);
-    setLibraryArticles([]);
     setInsights([]);
     queryClient.removeQueries({ queryKey: ['profile'] });
     queryClient.removeQueries({ queryKey: ['customerInfo'] });
+    queryClient.removeQueries({ queryKey: ['savedArticles'] });
     await clearArticleCache();
     console.log('[App] Account deleted');
   }, [session, queryClient]);
@@ -422,20 +432,25 @@ export const [AppProvider, useApp] = createContextHook(() => {
     }
   }, [session, refreshCustomerInfo, user, articles]);
 
-  const feedbackArticle = useCallback((articleId: string, feedback: 'up' | 'down') => {
+  const feedbackArticle = useCallback(async (articleId: string, feedback: 'up' | 'down') => {
     const toggle = (current: 'up' | 'down' | null) => current === feedback ? null : feedback;
     setArticles(prev =>
       prev.map(a => a.id === articleId ? { ...a, feedback: toggle(a.feedback) } : a)
     );
-    setLibraryArticles(prev => {
-      const exists = prev.find(a => a.id === articleId);
-      if (!exists) return prev;
-      const updated = prev.map(a => a.id === articleId ? { ...a, feedback: toggle(a.feedback) } : a);
-      persistSavedArticles(updated);
-      return updated;
-    });
+    if (session?.user?.id && savedArticleIds.has(articleId)) {
+      const savedRow = (savedArticlesQuery.data || []).find(r => r.article_id === articleId);
+      if (savedRow) {
+        const updatedData = { ...(savedRow.article_data as Article), feedback: toggle((savedRow.article_data as Article).feedback) };
+        await supabase
+          .from('saved_articles')
+          .update({ article_data: updatedData })
+          .eq('user_id', session.user.id)
+          .eq('article_id', articleId);
+        queryClient.invalidateQueries({ queryKey: ['savedArticles'] });
+      }
+    }
     console.log('[App] Article feedback:', articleId, feedback);
-  }, [persistSavedArticles]);
+  }, [savedArticleIds, savedArticlesQuery.data, session, queryClient]);
 
   const markArticleRead = useCallback((articleId: string) => {
     setArticles(prev => {
@@ -459,43 +474,47 @@ export const [AppProvider, useApp] = createContextHook(() => {
     }
   }, [user, session]);
 
-  const toggleSaveArticle = useCallback((articleId: string) => {
-    const articleFromDaily = articles.find(a => a.id === articleId);
-    const articleFromLibrary = libraryArticles.find(a => a.id === articleId);
-    const article = articleFromDaily || articleFromLibrary;
+  const toggleSaveArticle = useCallback(async (articleId: string) => {
+    if (!session?.user?.id) return;
+
+    const article = articles.find(a => a.id === articleId) || libraryArticles.find(a => a.id === articleId);
     if (!article) return;
 
-    const currentlySaved = articleFromDaily ? articleFromDaily.isSaved : !!articleFromLibrary;
+    const currentlySaved = savedArticleIds.has(articleId);
 
     if (!currentlySaved && todaySavesUsed >= maxDailySaves) {
+      console.log('[App] Daily save limit reached:', todaySavesUsed, '/', maxDailySaves);
       return;
     }
 
-    if (articleFromDaily) {
-      setArticles(prev =>
-        prev.map(a => a.id === articleId ? { ...a, isSaved: !currentlySaved } : a)
-      );
+    if (!currentlySaved) {
+      const { error } = await supabase
+        .from('saved_articles')
+        .insert({
+          user_id: session.user.id,
+          article_id: articleId,
+          article_data: { ...article, isSaved: true },
+        });
+      if (error) {
+        console.log('[App] Failed to save article:', error.message);
+        return;
+      }
+      console.log('[App] Article saved:', articleId);
+    } else {
+      const { error } = await supabase
+        .from('saved_articles')
+        .delete()
+        .eq('user_id', session.user.id)
+        .eq('article_id', articleId);
+      if (error) {
+        console.log('[App] Failed to unsave article:', error.message);
+        return;
+      }
+      console.log('[App] Article unsaved:', articleId);
     }
 
-    if (!currentlySaved) {
-      setTodaySavesUsed(p => p + 1);
-      const savedArticle = { ...article, isSaved: true };
-      setLibraryArticles(prev => {
-        const exists = prev.find(a => a.id === articleId);
-        if (exists) return prev;
-        const updated = [savedArticle, ...prev];
-        persistSavedArticles(updated);
-        return updated;
-      });
-    } else {
-      setTodaySavesUsed(p => Math.max(0, p - 1));
-      setLibraryArticles(prev => {
-        const updated = prev.filter(a => a.id !== articleId);
-        persistSavedArticles(updated);
-        return updated;
-      });
-    }
-  }, [articles, libraryArticles, todaySavesUsed, maxDailySaves, persistSavedArticles]);
+    queryClient.invalidateQueries({ queryKey: ['savedArticles'] });
+  }, [articles, libraryArticles, savedArticleIds, todaySavesUsed, maxDailySaves, session, queryClient]);
 
   const generateInsight = useCallback(async (articleId: string) => {
     if (!user?.isPremium) {
@@ -612,10 +631,13 @@ Respond in this exact JSON format:
     queryClient.invalidateQueries({ queryKey: ['profile'] });
   }, [user, session, queryClient, loadArticlesForUser]);
 
-
-
   const savedArticles = useMemo(() => libraryArticles, [libraryArticles]);
-  const dailyArticles = useMemo(() => articles.slice(0, maxDailyReads), [articles, maxDailyReads]);
+
+  // isSaved is derived from Supabase so it's consistent across devices
+  const dailyArticles = useMemo(
+    () => articles.slice(0, maxDailyReads).map(a => ({ ...a, isSaved: savedArticleIds.has(a.id) })),
+    [articles, maxDailyReads, savedArticleIds]
+  );
 
   return {
     user,
