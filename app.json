@@ -1,28 +1,35 @@
 {
   "expo": {
     "name": "Paprr",
-    "slug": "trendtrack-personalized-news",
+    "slug": "paprr",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "rork-app",
-    "userInterfaceStyle": "automatic",
+    "scheme": "paprr",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#F5F5F5"
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "app.rork.trendtrack-personalized-news"
+      "bundleIdentifier": "app.rork.paprr",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Allow Paprr to access your camera to update your profile photo.",
+        "NSPhotoLibraryUsageDescription": "Allow Paprr to access your photo library to update your profile photo.",
+        "NSUserTrackingUsageDescription": "This helps us provide a better experience and relevant content recommendations."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#F5F5F5"
       },
-      "package": "app.rork.trendtrack_personalized_news"
+      "package": "app.rork.paprr",
+      "versionCode": 1
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
@@ -36,7 +43,14 @@
       ],
       "expo-font",
       "expo-web-browser",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Paprr to access your photo library to update your profile photo.",
+          "cameraPermission": "Allow Paprr to access your camera to update your profile photo."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
