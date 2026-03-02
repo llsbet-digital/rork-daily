@@ -90,7 +90,7 @@ function ArticleInsightBlock({ insight, index }: { insight: ArticleInsight; inde
         end={{ x: 0.8, y: 1 }}
         style={styles.summaryCard}
       >
-        <Text style={styles.summaryLabel}>Core Insight</Text>
+        <Text style={styles.summaryLabel}>Summary</Text>
         <Text style={styles.summaryText}>{insight.summary}</Text>
         <Text style={styles.summaryTime}>
           {new Date(insight.generatedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
@@ -123,7 +123,7 @@ function ArticleInsightBlock({ insight, index }: { insight: ArticleInsight; inde
                 </View>
                 <View style={styles.insightChipFooter}>
                   <Sparkles size={11} color={Colors.textSecondary} />
-                  <Text style={styles.insightChipIndex}>Learning {tIdx + 1}</Text>
+                  <Text style={styles.insightChipIndex}>Key fact</Text>
                 </View>
               </LinearGradient>
             )}

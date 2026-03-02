@@ -574,18 +574,20 @@ export const [AppProvider, useApp] = createContextHook(() => {
           messages: [
             {
               role: 'system',
-              content: 'You are a reading assistant that extracts the most highlightable, memorable learnings from articles. Focus on specific insights a reader would underline — not generic summaries. Always respond with valid JSON matching the requested format.',
+              content: 'You are a reading assistant. You produce a concise summary of an article and extract specific, fact-based learnings — especially those containing numbers, statistics, names, dates, or concrete details a reader would want to remember. Always respond with valid JSON matching the requested format.',
             },
             {
               role: 'user',
-              content: `Read this article and extract the most important learnings — the kind of lines a reader would highlight or underline. These should be specific, insightful statements, not generic summaries.
+              content: `Read this article and:
+1. Write a brief summary (2-3 sentences) capturing what the article is about.
+2. Extract as many specific, fact-based learnings as possible — especially facts with numbers, statistics, percentages, names, dates, or concrete details. Each learning should be a standalone factual statement a reader would want to remember. Do not number them.
 
 Title: ${article.title}
 Category: ${article.category}
 Content: ${article.content || article.summary}
 
 Respond in this exact JSON format:
-{"summary": "One compelling sentence capturing the core insight", "keyTakeaways": ["A specific highlightable learning", "Another key insight worth remembering", "A third actionable or thought-provoking takeaway"]}`,
+{"summary": "A 2-3 sentence summary of the article", "keyTakeaways": ["Specific fact or detail from the article", "Another concrete fact worth remembering", ...]}`,
             },
           ],
           response_format: { type: 'json_object' },
