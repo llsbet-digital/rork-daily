@@ -6,12 +6,11 @@ import {
   Animated,
   ScrollView,
   TouchableOpacity,
-  FlatList,
   Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Lightbulb, BookOpen, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react-native';
+import { Lightbulb, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { Image } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
@@ -20,12 +19,20 @@ import { ArticleInsight } from '@/types';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const INSIGHT_CARD_WIDTH = SCREEN_WIDTH * 0.6;
+const CARD_GAP = 12;
+const HORIZONTAL_PAD = 20;
+const LEARNING_CARD_WIDTH = (SCREEN_WIDTH - HORIZONTAL_PAD * 2 - CARD_GAP) / 2;
 
-const SUMMARY_GRADIENT_SETS = [
-  ['#F5EDE3', '#EDE4D6', '#F0E6D8', '#F5EDE3'] as const,
-  ['#F3EBDF', '#E8DECE', '#EEDCCA', '#F3EBDF'] as const,
-  ['#F7F0E6', '#EDE3D3', '#F2E8DA', '#F7F0E6'] as const,
+const SUMMARY_BORDER_COLORS = [
+  ['#E8B4F8', '#F5C6D0', '#FDDCB5', '#F5EDE3'] as const,
+  ['#F5C6D0', '#FDDCB5', '#F5EDE3', '#E8B4F8'] as const,
+  ['#FDDCB5', '#E8B4F8', '#F5C6D0', '#F5EDE3'] as const,
+] as const;
+
+const LEARNING_BORDER_COLORS = [
+  ['#F5E6C8', '#FDDCB5', '#F5EDE3', '#F5E6C8'] as const,
+  ['#FDDCB5', '#F5E6C8', '#F5EDE3', '#FDDCB5'] as const,
+  ['#F5EDE3', '#FDDCB5', '#F5E6C8', '#F5EDE3'] as const,
 ] as const;
 
 function getDateKey(date: Date): string {
@@ -47,8 +54,9 @@ function formatMonthYear(date: Date): string {
 function ArticleInsightBlock({ insight, index }: { insight: ArticleInsight; index: number }) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
-  const gradientIdx = insight.colorIndex != null ? insight.colorIndex % SUMMARY_GRADIENT_SETS.length : index % SUMMARY_GRADIENT_SETS.length;
-  const gradientColors = SUMMARY_GRADIENT_SETS[gradientIdx];
+  const gradientIdx = insight.colorIndex != null ? insight.colorIndex % SUMMARY_BORDER_COLORS.length : index % SUMMARY_BORDER_COLORS.length;
+  const summaryBorderGradient = SUMMARY_BORDER_COLORS[gradientIdx];
+  const learningBorderGradient = LEARNING_BORDER_COLORS[gradientIdx];
 
   useEffect(() => {
     Animated.parallel([
@@ -85,16 +93,18 @@ function ArticleInsightBlock({ insight, index }: { insight: ArticleInsight; inde
       </View>
 
       <LinearGradient
-        colors={[...gradientColors]}
-        start={{ x: 0.2, y: 0 }}
-        end={{ x: 0.8, y: 1 }}
-        style={styles.summaryCard}
+        colors={[...summaryBorderGradient]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.summaryBorderGradient}
       >
-        <Text style={styles.summaryLabel}>Summary</Text>
-        <Text style={styles.summaryText}>{insight.summary}</Text>
-        <Text style={styles.summaryTime}>
-          {new Date(insight.generatedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-        </Text>
+        <View style={styles.summaryCardInner}>
+          <Text style={styles.summaryLabel}>Summary</Text>
+          <Text style={styles.summaryText}>{insight.summary}</Text>
+          <Text style={styles.summaryTime}>
+            {new Date(insight.generatedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+          </Text>
+        </View>
       </LinearGradient>
 
       {insight.keyTakeaways.length > 0 && (
@@ -106,17 +116,21 @@ function ArticleInsightBlock({ insight, index }: { insight: ArticleInsight; inde
             </View>
             <Text style={styles.insightsCount}>{insight.keyTakeaways.length} learnings</Text>
           </View>
-          <View style={styles.learningsContainer}>
+          <View style={styles.learningsGrid}>
             {insight.keyTakeaways.map((item, tIdx) => (
               <LinearGradient
                 key={`${insight.id}_takeaway_${tIdx}`}
-                colors={[...gradientColors]}
-                start={{ x: 0.1, y: 0 }}
-                end={{ x: 0.9, y: 1 }}
-                style={styles.learningCard}
+                colors={[...learningBorderGradient]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.learningCardBorder}
               >
-                <View style={styles.learningCardDot} />
-                <Text style={styles.learningCardText}>{item}</Text>
+                <View style={styles.learningCardInner}>
+                  <Text style={styles.learningCardText} numberOfLines={5}>{item}</Text>
+                  <View style={styles.learningCardFooter}>
+                    <Text style={styles.learningCardSource} numberOfLines={1}>{insight.articleTitle}</Text>
+                  </View>
+                </View>
               </LinearGradient>
             ))}
           </View>
@@ -412,7 +426,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   scrollContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: HORIZONTAL_PAD,
     paddingBottom: 40,
     paddingTop: 8,
   },
@@ -426,13 +440,13 @@ const styles = StyleSheet.create({
     fontFamily: 'CrimsonText_700Bold',
   },
   articleBlock: {
-    marginBottom: 28,
+    marginBottom: 32,
   },
   articleHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 14,
   },
   articleTitleRow: {
     flexDirection: 'row',
@@ -462,10 +476,15 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: Colors.primary,
   },
-  summaryCard: {
-    borderRadius: 20,
+  summaryBorderGradient: {
+    borderRadius: 22,
+    padding: 3,
+    marginBottom: 20,
+  },
+  summaryCardInner: {
+    backgroundColor: '#FAF8F5',
+    borderRadius: 19,
     padding: 20,
-    marginBottom: 16,
   },
   summaryLabel: {
     fontSize: 11,
@@ -494,7 +513,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   insightsSectionTitleRow: {
     flexDirection: 'row',
@@ -511,30 +530,40 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     fontWeight: '500' as const,
   },
-  learningsContainer: {
-    gap: 10,
-  },
-  learningCard: {
-    borderRadius: 14,
-    padding: 16,
+  learningsGrid: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
+    flexWrap: 'wrap',
+    gap: CARD_GAP,
   },
-  learningCardDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.primary,
-    marginTop: 7,
-    flexShrink: 0,
+  learningCardBorder: {
+    width: LEARNING_CARD_WIDTH,
+    borderRadius: 18,
+    padding: 2.5,
+  },
+  learningCardInner: {
+    backgroundColor: '#FAF8F5',
+    borderRadius: 16,
+    padding: 14,
+    minHeight: 140,
+    justifyContent: 'space-between',
   },
   learningCardText: {
-    fontSize: 14,
+    fontSize: 13,
     color: Colors.text,
-    lineHeight: 21,
+    lineHeight: 19,
     letterSpacing: -0.1,
     flex: 1,
+  },
+  learningCardFooter: {
+    marginTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(0,0,0,0.08)',
+    paddingTop: 10,
+  },
+  learningCardSource: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    fontWeight: '500' as const,
   },
   emptyContent: {
     flex: 1,
