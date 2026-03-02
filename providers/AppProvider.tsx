@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import createContextHook from '@nkzw/create-context-hook';
@@ -475,28 +476,46 @@ export const [AppProvider, useApp] = createContextHook(() => {
   }, [user, session]);
 
   const toggleSaveArticle = useCallback(async (articleId: string) => {
-    if (!session?.user?.id) return;
+    if (!session?.user?.id) {
+      console.log('[App] Cannot save article: not authenticated');
+      return;
+    }
 
     const article = articles.find(a => a.id === articleId) || libraryArticles.find(a => a.id === articleId);
-    if (!article) return;
+    if (!article) {
+      console.log('[App] Cannot save article: article not found', articleId);
+      return;
+    }
 
     const currentlySaved = savedArticleIds.has(articleId);
 
     if (!currentlySaved && todaySavesUsed >= maxDailySaves) {
       console.log('[App] Daily save limit reached:', todaySavesUsed, '/', maxDailySaves);
+      Alert.alert(
+        'Daily Save Limit',
+        user?.isPremium
+          ? `You've saved ${maxDailySaves} articles today. Come back tomorrow for more!`
+          : `Free accounts can save ${maxDailySaves} article per day. Upgrade to Premium for more saves!`,
+        user?.isPremium ? [{ text: 'OK' }] : [
+          { text: 'Maybe Later', style: 'cancel' },
+          { text: 'Go Premium', onPress: () => {} },
+        ]
+      );
       return;
     }
 
     if (!currentlySaved) {
+      const articleToSave = { ...article, isSaved: true };
       const { error } = await supabase
         .from('saved_articles')
-        .insert({
+        .upsert({
           user_id: session.user.id,
           article_id: articleId,
-          article_data: { ...article, isSaved: true },
-        });
+          article_data: articleToSave,
+        }, { onConflict: 'user_id,article_id' });
       if (error) {
-        console.log('[App] Failed to save article:', error.message);
+        console.log('[App] Failed to save article:', error.message, error.details, error.hint);
+        Alert.alert('Save Failed', 'Could not save the article. Please try again.');
         return;
       }
       console.log('[App] Article saved:', articleId);
@@ -507,14 +526,15 @@ export const [AppProvider, useApp] = createContextHook(() => {
         .eq('user_id', session.user.id)
         .eq('article_id', articleId);
       if (error) {
-        console.log('[App] Failed to unsave article:', error.message);
+        console.log('[App] Failed to unsave article:', error.message, error.details, error.hint);
+        Alert.alert('Error', 'Could not remove the article. Please try again.');
         return;
       }
       console.log('[App] Article unsaved:', articleId);
     }
 
-    queryClient.invalidateQueries({ queryKey: ['savedArticles'] });
-  }, [articles, libraryArticles, savedArticleIds, todaySavesUsed, maxDailySaves, session, queryClient]);
+    await queryClient.invalidateQueries({ queryKey: ['savedArticles'] });
+  }, [articles, libraryArticles, savedArticleIds, todaySavesUsed, maxDailySaves, session, queryClient, user?.isPremium]);
 
   const generateInsight = useCallback(async (articleId: string) => {
     if (!user?.isPremium) {
