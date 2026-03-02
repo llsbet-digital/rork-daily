@@ -488,6 +488,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     }
 
     const currentlySaved = savedArticleIds.has(articleId);
+    console.log('[App] toggleSaveArticle:', articleId, 'currentlySaved:', currentlySaved);
 
     if (!currentlySaved && todaySavesUsed >= maxDailySaves) {
       console.log('[App] Daily save limit reached:', todaySavesUsed, '/', maxDailySaves);
@@ -504,8 +505,25 @@ export const [AppProvider, useApp] = createContextHook(() => {
       return;
     }
 
+    setArticles(prev => prev.map(a => a.id === articleId ? { ...a, isSaved: !currentlySaved } : a));
+
     if (!currentlySaved) {
-      const articleToSave = { ...article, isSaved: true };
+      const articleToSave: Record<string, unknown> = {
+        id: article.id,
+        title: article.title,
+        summary: article.summary,
+        category: article.category,
+        source: article.source,
+        readTime: article.readTime,
+        publishedAt: article.publishedAt,
+        imageUrl: article.imageUrl,
+        content: (article.content || '').slice(0, 5000),
+        url: article.url,
+        isRead: article.isRead,
+        feedback: article.feedback,
+        isSaved: true,
+      };
+      console.log('[App] Saving article to Supabase:', articleId);
       const { error } = await supabase
         .from('saved_articles')
         .upsert({
@@ -515,11 +533,13 @@ export const [AppProvider, useApp] = createContextHook(() => {
         }, { onConflict: 'user_id,article_id' });
       if (error) {
         console.log('[App] Failed to save article:', error.message, error.details, error.hint);
+        setArticles(prev => prev.map(a => a.id === articleId ? { ...a, isSaved: false } : a));
         Alert.alert('Save Failed', 'Could not save the article. Please try again.');
         return;
       }
-      console.log('[App] Article saved:', articleId);
+      console.log('[App] Article saved successfully:', articleId);
     } else {
+      console.log('[App] Removing article from Supabase:', articleId);
       const { error } = await supabase
         .from('saved_articles')
         .delete()
@@ -527,10 +547,11 @@ export const [AppProvider, useApp] = createContextHook(() => {
         .eq('article_id', articleId);
       if (error) {
         console.log('[App] Failed to unsave article:', error.message, error.details, error.hint);
+        setArticles(prev => prev.map(a => a.id === articleId ? { ...a, isSaved: true } : a));
         Alert.alert('Error', 'Could not remove the article. Please try again.');
         return;
       }
-      console.log('[App] Article unsaved:', articleId);
+      console.log('[App] Article unsaved successfully:', articleId);
     }
 
     await queryClient.invalidateQueries({ queryKey: ['savedArticles'] });

@@ -106,28 +106,20 @@ function ArticleInsightBlock({ insight, index }: { insight: ArticleInsight; inde
             </View>
             <Text style={styles.insightsCount}>{insight.keyTakeaways.length} learnings</Text>
           </View>
-          <FlatList
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            data={insight.keyTakeaways}
-            keyExtractor={(_, i) => `${insight.id}_takeaway_${i}`}
-            contentContainerStyle={styles.insightsScrollContent}
-            renderItem={({ item, index: tIdx }) => (
+          <View style={styles.learningsContainer}>
+            {insight.keyTakeaways.map((item, tIdx) => (
               <LinearGradient
+                key={`${insight.id}_takeaway_${tIdx}`}
                 colors={[...gradientColors]}
                 start={{ x: 0.1, y: 0 }}
                 end={{ x: 0.9, y: 1 }}
-                style={styles.insightChip}>
-                <View style={styles.insightChipContent}>
-                  <Text style={styles.insightChipText}>{item}</Text>
-                </View>
-                <View style={styles.insightChipFooter}>
-                  <Sparkles size={11} color={Colors.textSecondary} />
-                  <Text style={styles.insightChipIndex}>Key fact</Text>
-                </View>
+                style={styles.learningCard}
+              >
+                <View style={styles.learningCardDot} />
+                <Text style={styles.learningCardText}>{item}</Text>
               </LinearGradient>
-            )}
-          />
+            ))}
+          </View>
         </View>
       )}
     </Animated.View>
@@ -519,34 +511,30 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     fontWeight: '500' as const,
   },
-  insightsScrollContent: {
+  learningsContainer: {
     gap: 10,
   },
-  insightChip: {
-    width: INSIGHT_CARD_WIDTH,
-    borderRadius: 16,
+  learningCard: {
+    borderRadius: 14,
     padding: 16,
-    justifyContent: 'space-between',
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
   },
-  insightChipContent: {
-    flex: 1,
-    marginBottom: 12,
+  learningCardDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.primary,
+    marginTop: 7,
+    flexShrink: 0,
   },
-  insightChipText: {
+  learningCardText: {
     fontSize: 14,
     color: Colors.text,
     lineHeight: 21,
     letterSpacing: -0.1,
-  },
-  insightChipFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  insightChipIndex: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-    fontWeight: '500' as const,
+    flex: 1,
   },
   emptyContent: {
     flex: 1,
