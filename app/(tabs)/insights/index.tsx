@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Lightbulb, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { Image } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
@@ -84,7 +84,6 @@ function ArticleInsightBlock({ insight, index }: { insight: ArticleInsight; inde
     >
       <View style={styles.articleHeader}>
         <View style={styles.articleTitleRow}>
-          <BookOpen size={14} color={Colors.primary} />
           <Text style={styles.articleTitle} numberOfLines={1}>{insight.articleTitle}</Text>
         </View>
         <View style={styles.categoryPill}>
@@ -109,7 +108,6 @@ function ArticleInsightBlock({ insight, index }: { insight: ArticleInsight; inde
         <View style={styles.insightsSection}>
           <View style={styles.insightsSectionHeader}>
             <View style={styles.insightsSectionTitleRow}>
-              <Lightbulb size={15} color={Colors.primary} />
               <Text style={styles.insightsSectionTitle}>Key Learnings</Text>
             </View>
             <Text style={styles.insightsCount}>{insight.keyTakeaways.length} learnings</Text>
