@@ -134,9 +134,9 @@ const rowStyles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: BADGE_PADDING_H,
     borderRadius: 22,
-    backgroundColor: Colors.cardBackground,
+    backgroundColor: '#1A1A1A',
     borderWidth: 1.5,
-    borderColor: Colors.inputBorder,
+    borderColor: '#1A1A1A',
   },
   badgeSelected: {
     backgroundColor: Colors.primary,
@@ -145,7 +145,7 @@ const rowStyles = StyleSheet.create({
   badgeText: {
     fontSize: 14,
     fontWeight: '500' as const,
-    color: Colors.text,
+    color: '#FFFFFF',
   },
   badgeTextSelected: {
     color: Colors.white,
@@ -271,7 +271,7 @@ export default function ManageInterestsScreen() {
                   onPress={() => removeInterest(interest)}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
-                  <X size={14} color={Colors.primary} />
+                  <X size={14} color="#FFFFFF" />
                 </TouchableOpacity>
               </View>
             ))}
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
   selectedTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: '#1A1A1A',
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -432,7 +432,7 @@ const styles = StyleSheet.create({
   },
   selectedTagText: {
     fontSize: 14,
-    color: Colors.text,
+    color: '#FFFFFF',
     fontWeight: '500' as const,
   },
   emptyHint: {

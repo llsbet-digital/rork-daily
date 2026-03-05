@@ -93,7 +93,7 @@ export default function OnboardingInterests() {
                   onPress={() => removeInterest(interest)}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
-                  <X size={14} color={Colors.textSecondary} />
+                  <X size={14} color="#FFFFFF" />
                 </TouchableOpacity>
               </View>
             ))}
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   tag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: '#1A1A1A',
     borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
   },
   tagText: {
     fontSize: 15,
-    color: Colors.text,
+    color: '#FFFFFF',
     fontWeight: '500' as const,
   },
   emptyState: {

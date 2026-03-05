@@ -464,17 +464,15 @@ const styles = StyleSheet.create({
     fontFamily: 'CrimsonText_600SemiBold',
   },
   categoryPill: {
-    backgroundColor: Colors.background,
+    backgroundColor: '#1A1A1A',
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 10,
-    borderWidth: 1,
-    borderColor: Colors.primary,
   },
   categoryPillText: {
     fontSize: 12,
     fontWeight: '600' as const,
-    color: Colors.primary,
+    color: '#FFFFFF',
   },
   summaryBorderGradient: {
     borderRadius: 22,
