@@ -21,7 +21,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_GAP = 12;
 const HORIZONTAL_PAD = 20;
-const LEARNING_CARD_WIDTH = (SCREEN_WIDTH - HORIZONTAL_PAD * 2 - CARD_GAP) / 2;
+const LEARNING_CARD_WIDTH = SCREEN_WIDTH * 0.6;
 
 const SUMMARY_BORDER_COLORS = [
   ['#E8B4F8', '#F5C6D0', '#FDDCB5', '#F5EDE3'] as const,
@@ -101,9 +101,7 @@ function ArticleInsightBlock({ insight, index }: { insight: ArticleInsight; inde
         <View style={styles.summaryCardInner}>
           <Text style={styles.summaryLabel}>Summary</Text>
           <Text style={styles.summaryText}>{insight.summary}</Text>
-          <Text style={styles.summaryTime}>
-            {new Date(insight.generatedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-          </Text>
+
         </View>
       </LinearGradient>
 
@@ -116,7 +114,11 @@ function ArticleInsightBlock({ insight, index }: { insight: ArticleInsight; inde
             </View>
             <Text style={styles.insightsCount}>{insight.keyTakeaways.length} learnings</Text>
           </View>
-          <View style={styles.learningsGrid}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.learningsRow}
+          >
             {insight.keyTakeaways.map((item, tIdx) => (
               <LinearGradient
                 key={`${insight.id}_takeaway_${tIdx}`}
@@ -133,7 +135,7 @@ function ArticleInsightBlock({ insight, index }: { insight: ArticleInsight; inde
                 </View>
               </LinearGradient>
             ))}
-          </View>
+          </ScrollView>
         </View>
       )}
     </Animated.View>
@@ -500,12 +502,7 @@ const styles = StyleSheet.create({
     lineHeight: 23,
     letterSpacing: -0.1,
   },
-  summaryTime: {
-    fontSize: 11,
-    color: 'rgba(0,0,0,0.35)',
-    marginTop: 14,
-    textAlign: 'right' as const,
-  },
+
   insightsSection: {
     marginTop: 0,
   },
@@ -530,15 +527,15 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     fontWeight: '500' as const,
   },
-  learningsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  learningsRow: {
     gap: CARD_GAP,
+    paddingRight: 20,
   },
   learningCardBorder: {
     width: LEARNING_CARD_WIDTH,
     borderRadius: 18,
     padding: 2.5,
+    flexShrink: 0,
   },
   learningCardInner: {
     backgroundColor: '#FAF8F5',
