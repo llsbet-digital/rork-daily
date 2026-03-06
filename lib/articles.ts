@@ -75,11 +75,11 @@ Respond with ONLY a valid JSON object in this exact format, no markdown or extra
   console.log('[Articles] Extracted text length:', fullText.length);
   console.log('[Articles] Extracted text preview:', fullText.slice(0, 500));
 
-  const jsonMatch = fullText.match(/\{[\s\S]*"articles"[\s\S]*\}/);
-  if (!jsonMatch) {
-    console.log('[Articles] No JSON found in response, full text:', fullText.slice(0, 1000));
-    throw new Error('No valid JSON found in OpenAI response');
-  }
+  let cleanedText = fullText
+    .replace(/```json\s*/gi, '')
+    .replace(/```\s*/g, '')
+    .replace(/【[^】]*】/g, '')
+    .trim();
 
   let data: { articles: Array<{
     title: string;
@@ -92,10 +92,20 @@ Respond with ONLY a valid JSON object in this exact format, no markdown or extra
   }> };
 
   try {
-    data = JSON.parse(jsonMatch[0]);
-  } catch (e) {
-    console.log('[Articles] JSON parse error:', e);
-    throw new Error('Failed to parse article JSON');
+    data = JSON.parse(cleanedText);
+  } catch (_e) {
+    console.log('[Articles] Direct parse failed, trying regex extraction');
+    const jsonMatch = cleanedText.match(/\{[\s\S]*"articles"\s*:\s*\[[\s\S]*\]\s*\}/);
+    if (!jsonMatch) {
+      console.log('[Articles] No JSON found in response, cleaned text:', cleanedText.slice(0, 1000));
+      throw new Error('No valid JSON found in OpenAI response');
+    }
+    try {
+      data = JSON.parse(jsonMatch[0]);
+    } catch (e2) {
+      console.log('[Articles] JSON parse error:', e2, 'matched:', jsonMatch[0].slice(0, 500));
+      throw new Error('Failed to parse article JSON');
+    }
   }
 
   if (!data.articles || !Array.isArray(data.articles)) {
