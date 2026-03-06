@@ -134,7 +134,7 @@ const rowStyles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: BADGE_PADDING_H,
     borderRadius: 22,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: 'transparent',
     borderWidth: 1.5,
     borderColor: '#1A1A1A',
   },
@@ -145,7 +145,7 @@ const rowStyles = StyleSheet.create({
   badgeText: {
     fontSize: 14,
     fontWeight: '500' as const,
-    color: '#FFFFFF',
+    color: '#1A1A1A',
   },
   badgeTextSelected: {
     color: Colors.white,
