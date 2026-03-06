@@ -478,17 +478,19 @@ export const [AppProvider, useApp] = createContextHook(() => {
   const toggleSaveArticle = useCallback(async (articleId: string) => {
     if (!session?.user?.id) {
       console.log('[App] Cannot save article: not authenticated');
+      Alert.alert('Sign In Required', 'Please sign in to save articles.');
       return;
     }
 
     const article = articles.find(a => a.id === articleId) || libraryArticles.find(a => a.id === articleId);
     if (!article) {
-      console.log('[App] Cannot save article: article not found', articleId);
+      console.log('[App] Cannot save article: article not found in articles or library', articleId);
+      Alert.alert('Error', 'Article not found. Please try again.');
       return;
     }
 
     const currentlySaved = savedArticleIds.has(articleId);
-    console.log('[App] toggleSaveArticle:', articleId, 'currentlySaved:', currentlySaved);
+    console.log('[App] toggleSaveArticle:', articleId, 'currentlySaved:', currentlySaved, 'userId:', session.user.id);
 
     if (!currentlySaved && todaySavesUsed >= maxDailySaves) {
       console.log('[App] Daily save limit reached:', todaySavesUsed, '/', maxDailySaves);
@@ -507,51 +509,69 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
     setArticles(prev => prev.map(a => a.id === articleId ? { ...a, isSaved: !currentlySaved } : a));
 
-    if (!currentlySaved) {
-      const articleToSave: Record<string, unknown> = {
-        id: article.id,
-        title: article.title,
-        summary: article.summary,
-        category: article.category,
-        source: article.source,
-        readTime: article.readTime,
-        publishedAt: article.publishedAt,
-        imageUrl: article.imageUrl,
-        content: (article.content || '').slice(0, 5000),
-        url: article.url,
-        isRead: article.isRead,
-        feedback: article.feedback,
-        isSaved: true,
-      };
-      console.log('[App] Saving article to Supabase:', articleId);
-      const { error } = await supabase
-        .from('saved_articles')
-        .upsert({
-          user_id: session.user.id,
-          article_id: articleId,
-          article_data: articleToSave,
-        }, { onConflict: 'user_id,article_id' });
-      if (error) {
-        console.log('[App] Failed to save article:', error.message, error.details, error.hint);
-        setArticles(prev => prev.map(a => a.id === articleId ? { ...a, isSaved: false } : a));
-        Alert.alert('Save Failed', 'Could not save the article. Please try again.');
-        return;
+    try {
+      if (!currentlySaved) {
+        const articleToSave = {
+          id: article.id,
+          title: article.title,
+          summary: article.summary,
+          category: article.category,
+          source: article.source,
+          readTime: article.readTime,
+          publishedAt: article.publishedAt,
+          imageUrl: article.imageUrl,
+          content: (article.content || '').slice(0, 5000),
+          url: article.url,
+          isRead: article.isRead,
+          feedback: article.feedback,
+          isSaved: true,
+        };
+        console.log('[App] Saving article to Supabase:', articleId);
+
+        const { error: deleteFirst } = await supabase
+          .from('saved_articles')
+          .delete()
+          .eq('user_id', session.user.id)
+          .eq('article_id', articleId);
+        if (deleteFirst) {
+          console.log('[App] Pre-delete (non-fatal):', deleteFirst.message);
+        }
+
+        const { error } = await supabase
+          .from('saved_articles')
+          .insert({
+            user_id: session.user.id,
+            article_id: articleId,
+            article_data: articleToSave,
+            saved_at: new Date().toISOString(),
+          });
+        if (error) {
+          console.log('[App] Failed to save article:', error.message, error.code, error.details, error.hint);
+          setArticles(prev => prev.map(a => a.id === articleId ? { ...a, isSaved: false } : a));
+          Alert.alert('Save Failed', 'Could not save the article. Please try again.');
+          return;
+        }
+        console.log('[App] Article saved successfully:', articleId);
+      } else {
+        console.log('[App] Removing article from Supabase:', articleId);
+        const { error } = await supabase
+          .from('saved_articles')
+          .delete()
+          .eq('user_id', session.user.id)
+          .eq('article_id', articleId);
+        if (error) {
+          console.log('[App] Failed to unsave article:', error.message, error.code, error.details, error.hint);
+          setArticles(prev => prev.map(a => a.id === articleId ? { ...a, isSaved: true } : a));
+          Alert.alert('Error', 'Could not remove the article. Please try again.');
+          return;
+        }
+        console.log('[App] Article unsaved successfully:', articleId);
       }
-      console.log('[App] Article saved successfully:', articleId);
-    } else {
-      console.log('[App] Removing article from Supabase:', articleId);
-      const { error } = await supabase
-        .from('saved_articles')
-        .delete()
-        .eq('user_id', session.user.id)
-        .eq('article_id', articleId);
-      if (error) {
-        console.log('[App] Failed to unsave article:', error.message, error.details, error.hint);
-        setArticles(prev => prev.map(a => a.id === articleId ? { ...a, isSaved: true } : a));
-        Alert.alert('Error', 'Could not remove the article. Please try again.');
-        return;
-      }
-      console.log('[App] Article unsaved successfully:', articleId);
+    } catch (e) {
+      console.log('[App] toggleSaveArticle unexpected error:', e);
+      setArticles(prev => prev.map(a => a.id === articleId ? { ...a, isSaved: currentlySaved } : a));
+      Alert.alert('Error', 'Something went wrong. Please try again.');
+      return;
     }
 
     await queryClient.invalidateQueries({ queryKey: ['savedArticles'] });
