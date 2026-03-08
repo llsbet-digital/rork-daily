@@ -475,6 +475,33 @@ export const [AppProvider, useApp] = createContextHook(() => {
     }
   }, [user, session]);
 
+  const ensureSavedArticlesTable = useCallback(async () => {
+    if (!session?.user?.id) return false;
+    try {
+      const { error } = await supabase
+        .from('saved_articles')
+        .select('article_id')
+        .eq('user_id', session.user.id)
+        .limit(1);
+      if (error) {
+        console.log('[App] saved_articles table check failed:', error.message, error.code, error.hint);
+        if (error.code === '42P01' || error.message?.includes('does not exist') || error.message?.includes('relation')) {
+          console.log('[App] Table "saved_articles" does not exist in Supabase. Please create it with columns: id (uuid, PK), user_id (uuid, FK to auth.users), article_id (text), article_data (jsonb), saved_at (timestamptz). Enable RLS with policy for authenticated users.');
+          return false;
+        }
+        if (error.code === '42501' || error.message?.includes('permission') || error.message?.includes('policy')) {
+          console.log('[App] RLS policy blocking access to saved_articles. Please add: CREATE POLICY "Users can manage own saved articles" ON saved_articles FOR ALL USING (auth.uid() = user_id);');
+          return false;
+        }
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.log('[App] saved_articles table check exception:', e);
+      return false;
+    }
+  }, [session?.user?.id]);
+
   const toggleSaveArticle = useCallback(async (articleId: string) => {
     if (!session?.user?.id) {
       console.log('[App] Cannot save article: not authenticated');
@@ -491,6 +518,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
     const currentlySaved = savedArticleIds.has(articleId);
     console.log('[App] toggleSaveArticle:', articleId, 'currentlySaved:', currentlySaved, 'userId:', session.user.id);
+    console.log('[App] Supabase URL configured:', !!process.env.EXPO_PUBLIC_SUPABASE_URL);
 
     if (!currentlySaved && todaySavesUsed >= maxDailySaves) {
       console.log('[App] Daily save limit reached:', todaySavesUsed, '/', maxDailySaves);
@@ -503,6 +531,16 @@ export const [AppProvider, useApp] = createContextHook(() => {
           { text: 'Maybe Later', style: 'cancel' },
           { text: 'Go Premium', onPress: () => {} },
         ]
+      );
+      return;
+    }
+
+    const tableOk = await ensureSavedArticlesTable();
+    if (!tableOk) {
+      console.log('[App] saved_articles table is not accessible, cannot save');
+      Alert.alert(
+        'Save Unavailable',
+        'The saved articles feature is not available right now. Please check your Supabase setup — the "saved_articles" table may need to be created or its RLS policies configured.'
       );
       return;
     }
@@ -526,7 +564,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
           feedback: article.feedback,
           isSaved: true,
         };
-        console.log('[App] Saving article to Supabase:', articleId);
+        console.log('[App] Saving article to Supabase:', articleId, 'payload size:', JSON.stringify(articleToSave).length, 'bytes');
 
         const { error: deleteFirst } = await supabase
           .from('saved_articles')
@@ -534,24 +572,25 @@ export const [AppProvider, useApp] = createContextHook(() => {
           .eq('user_id', session.user.id)
           .eq('article_id', articleId);
         if (deleteFirst) {
-          console.log('[App] Pre-delete (non-fatal):', deleteFirst.message);
+          console.log('[App] Pre-delete (non-fatal):', deleteFirst.message, deleteFirst.code);
         }
 
-        const { error } = await supabase
+        const { data: insertData, error } = await supabase
           .from('saved_articles')
           .insert({
             user_id: session.user.id,
             article_id: articleId,
             article_data: articleToSave,
             saved_at: new Date().toISOString(),
-          });
+          })
+          .select();
         if (error) {
-          console.log('[App] Failed to save article:', error.message, error.code, error.details, error.hint);
+          console.log('[App] Failed to save article:', JSON.stringify({ message: error.message, code: error.code, details: error.details, hint: error.hint }));
           setArticles(prev => prev.map(a => a.id === articleId ? { ...a, isSaved: false } : a));
-          Alert.alert('Save Failed', 'Could not save the article. Please try again.');
+          Alert.alert('Save Failed', `Could not save the article: ${error.message}`);
           return;
         }
-        console.log('[App] Article saved successfully:', articleId);
+        console.log('[App] Article saved successfully:', articleId, 'inserted rows:', insertData?.length);
       } else {
         console.log('[App] Removing article from Supabase:', articleId);
         const { error } = await supabase
@@ -560,7 +599,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
           .eq('user_id', session.user.id)
           .eq('article_id', articleId);
         if (error) {
-          console.log('[App] Failed to unsave article:', error.message, error.code, error.details, error.hint);
+          console.log('[App] Failed to unsave article:', JSON.stringify({ message: error.message, code: error.code, details: error.details, hint: error.hint }));
           setArticles(prev => prev.map(a => a.id === articleId ? { ...a, isSaved: true } : a));
           Alert.alert('Error', 'Could not remove the article. Please try again.');
           return;
@@ -575,7 +614,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     }
 
     await queryClient.invalidateQueries({ queryKey: ['savedArticles'] });
-  }, [articles, libraryArticles, savedArticleIds, todaySavesUsed, maxDailySaves, session, queryClient, user?.isPremium]);
+  }, [articles, libraryArticles, savedArticleIds, todaySavesUsed, maxDailySaves, session, queryClient, user?.isPremium, ensureSavedArticlesTable]);
 
   const generateInsight = useCallback(async (articleId: string) => {
     if (!user?.isPremium) {
