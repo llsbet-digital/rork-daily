@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   TextInput,
   Animated,
-  Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -29,16 +28,10 @@ function LibraryArticleCard({ article, onSave, onFeedback, index }: {
   const router = useRouter();
   const bgColor = CARD_COLORS[index % CARD_COLORS.length];
 
-  const handlePress = useCallback(async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (article.url && article.url !== '#') {
-      try {
-        await Linking.openURL(article.url);
-      } catch (err) {
-        console.log('[Library] Failed to open URL:', err);
-      }
-    }
-  }, [article.id, article.url]);
+  const handlePress = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push({ pathname: '/article', params: { id: article.id } } as any);
+  }, [article.id, router]);
 
   return (
     <TouchableOpacity
@@ -52,7 +45,7 @@ function LibraryArticleCard({ article, onSave, onFeedback, index }: {
           <TouchableOpacity
             onPress={() => {
               onSave();
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             }}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
@@ -72,7 +65,7 @@ function LibraryArticleCard({ article, onSave, onFeedback, index }: {
           <TouchableOpacity
             onPress={() => {
               onFeedback('up');
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }}
             hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             style={[styles.feedbackBtn, article.feedback === 'up' && styles.feedbackBtnActive]}
@@ -86,7 +79,7 @@ function LibraryArticleCard({ article, onSave, onFeedback, index }: {
           <TouchableOpacity
             onPress={() => {
               onFeedback('down');
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }}
             hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             style={[styles.feedbackBtn, article.feedback === 'down' && styles.feedbackBtnActive]}

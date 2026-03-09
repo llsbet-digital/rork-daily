@@ -6,13 +6,11 @@ import {
   ScrollView,
   TouchableOpacity,
   Animated,
-  Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Sparkles, Bookmark, ThumbsUp, ThumbsDown, Loader } from 'lucide-react-native';
+import { Sparkles, Bookmark, ThumbsUp, ThumbsDown } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import Colors from '@/constants/colors';
 import { useApp } from '@/providers/AppProvider';
@@ -51,17 +49,11 @@ function ArticleCard({ article, onSave, onRead, onFeedback, onGenerateInsight, i
   });
   const bgColor = CARD_COLORS[index % CARD_COLORS.length];
 
-  const handlePress = useCallback(async () => {
+  const handlePress = useCallback(() => {
     onRead();
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (article.url && article.url !== '#') {
-      try {
-        await Linking.openURL(article.url);
-      } catch (err) {
-        console.log('[Today] Failed to open URL:', err);
-      }
-    }
-  }, [onRead, article.id, article.url]);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push({ pathname: '/article', params: { id: article.id } } as any);
+  }, [onRead, article.id, router]);
 
   return (
     <TouchableOpacity
@@ -75,7 +67,7 @@ function ArticleCard({ article, onSave, onRead, onFeedback, onGenerateInsight, i
           <TouchableOpacity
             onPress={() => {
               onSave();
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             }}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
@@ -96,7 +88,7 @@ function ArticleCard({ article, onSave, onRead, onFeedback, onGenerateInsight, i
           <TouchableOpacity
             onPress={() => {
               onFeedback('up');
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }}
             hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             style={[styles.feedbackBtn, article.feedback === 'up' && styles.feedbackBtnActive]}
@@ -110,7 +102,7 @@ function ArticleCard({ article, onSave, onRead, onFeedback, onGenerateInsight, i
           <TouchableOpacity
             onPress={() => {
               onFeedback('down');
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }}
             hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             style={[styles.feedbackBtn, article.feedback === 'down' && styles.feedbackBtnActive]}
@@ -127,7 +119,7 @@ function ArticleCard({ article, onSave, onRead, onFeedback, onGenerateInsight, i
           onPress={() => {
             if (!isGenerating) {
               onGenerateInsight();
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             }
           }}
           activeOpacity={0.7}
@@ -203,13 +195,6 @@ export default function TodayScreen() {
       router.push('/premium' as any);
     }
   }, [generateInsight, router]);
-
-  const getGreeting = useCallback(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
-  }, []);
 
 
 

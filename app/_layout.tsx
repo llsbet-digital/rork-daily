@@ -12,7 +12,7 @@ import {
 import { AppProvider, useApp } from "@/providers/AppProvider";
 import Colors from "@/constants/colors";
 
-SplashScreen.preventAutoHideAsync();
+void SplashScreen.preventAutoHideAsync();
 
 function RootLayoutNav() {
   const router = useRouter();
@@ -54,6 +54,7 @@ function RootLayoutNav() {
       <Stack.Screen name="settings" options={{ presentation: "modal" }} />
       <Stack.Screen name="premium" options={{ presentation: "modal" }} />
       <Stack.Screen name="manage-interests" options={{ presentation: "modal" }} />
+      <Stack.Screen name="article" />
     </Stack>
   );
 }
@@ -68,7 +69,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (fontsLoaded) {
-      SplashScreen.hideAsync();
+      void SplashScreen.hideAsync();
     }
   }, [fontsLoaded]);
 
