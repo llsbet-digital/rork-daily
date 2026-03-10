@@ -11,6 +11,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Sparkles, Bookmark, ThumbsUp, ThumbsDown } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import * as WebBrowser from 'expo-web-browser';
 
 import Colors from '@/constants/colors';
 import { useApp } from '@/providers/AppProvider';
@@ -49,11 +50,24 @@ function ArticleCard({ article, onSave, onRead, onFeedback, onGenerateInsight, i
   });
   const bgColor = CARD_COLORS[index % CARD_COLORS.length];
 
-  const handlePress = useCallback(() => {
+  const handlePress = useCallback(async () => {
     onRead();
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push({ pathname: '/article', params: { id: article.id } } as any);
-  }, [onRead, article.id, router]);
+    if (article.url && article.url !== '#' && article.url.startsWith('http')) {
+      try {
+        await WebBrowser.openBrowserAsync(article.url, {
+          presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
+          controlsColor: '#1A1A1A',
+          toolbarColor: '#FFFFFF',
+        });
+      } catch (err) {
+        console.log('[Article] Failed to open in-app browser:', err);
+        router.push({ pathname: '/article', params: { id: article.id } } as any);
+      }
+    } else {
+      router.push({ pathname: '/article', params: { id: article.id } } as any);
+    }
+  }, [onRead, article.id, article.url, router]);
 
   return (
     <TouchableOpacity

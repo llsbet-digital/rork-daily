@@ -17,7 +17,9 @@ async function searchArticlesWithOpenAI(interests: string[], count: number): Pro
 
   const today = getTodayDateString();
 
-  const prompt = `Find ${count} real, recent news articles from the internet about these topics: ${interests.join(', ')}.
+  const prompt = `Find ${count} real, recent FREE news articles from the internet about these topics: ${interests.join(', ')}.
+
+IMPORTANT: Only include articles that are completely free to read — no paywalls, no subscription requirements, no "sign up to continue reading" prompts. Avoid sources like WSJ, Financial Times, NYT, The Athletic, Bloomberg (paywalled), and similar subscription-only publications. Prefer free sources like BBC, Reuters, The Verge, TechCrunch, Ars Technica, The Guardian, AP News, NPR, Wired (free articles), etc.
 
 For each article, provide:
 - title: the exact article title
