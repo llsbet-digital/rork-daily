@@ -3,7 +3,7 @@ import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import createContextHook from '@nkzw/create-context-hook';
-import { User, Article, ArticleInsight } from '@/types';
+import { User, Article, ArticleInsight, NewsResource } from '@/types';
 import { fetchDailyArticles, fetchAdditionalArticles, clearArticleCache } from '@/lib/articles';
 import { supabase, UserProfile } from '@/lib/supabase';
 import { Session } from '@supabase/supabase-js';
@@ -12,6 +12,7 @@ import { configureRevenueCat, getCustomerInfo, checkEntitlement, loginRC, logout
 const STORAGE_KEYS = {
   ARTICLES: 'daily_articles',
   INSIGHTS: 'article_insights',
+  RESOURCES: 'user_news_resources',
 } as const;
 
 function profileToUser(profile: UserProfile): User {
@@ -43,6 +44,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
   const [articlesLoading, setArticlesLoading] = useState<boolean>(false);
   const [insights, setInsights] = useState<ArticleInsight[]>([]);
   const [generatingInsightId, setGeneratingInsightId] = useState<string | null>(null);
+  const [resources, setResources] = useState<NewsResource[]>([]);
 
   useEffect(() => {
     console.log('[App] Initializing Supabase auth listener');
@@ -237,12 +239,29 @@ export const [AppProvider, useApp] = createContextHook(() => {
     loadInsights();
   }, [loadInsights]);
 
-  const loadArticlesForUser = useCallback(async (interests: string[], isPremium: boolean) => {
+  const loadResources = useCallback(async () => {
+    try {
+      const stored = await AsyncStorage.getItem(STORAGE_KEYS.RESOURCES);
+      if (stored) {
+        const parsed = JSON.parse(stored) as NewsResource[];
+        setResources(parsed);
+        console.log('[App] Loaded', parsed.length, 'resources');
+      }
+    } catch (e) {
+      console.log('[App] Failed to load resources:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadResources();
+  }, [loadResources]);
+
+  const loadArticlesForUser = useCallback(async (interests: string[], isPremium: boolean, resourceList?: NewsResource[]) => {
     if (!interests || interests.length === 0) return;
     const count = isPremium ? 5 : 3;
     setArticlesLoading(true);
     try {
-      const fetched = await fetchDailyArticles(interests, count);
+      const fetched = await fetchDailyArticles(interests, count, resourceList);
       setArticles(fetched);
       console.log('[App] Loaded', fetched.length, 'articles');
     } catch (error) {
@@ -253,9 +272,37 @@ export const [AppProvider, useApp] = createContextHook(() => {
     }
   }, []);
 
+  const addResource = useCallback(async (name: string, url: string) => {
+    const newResource: NewsResource = {
+      id: `resource-${Date.now()}`,
+      name,
+      url,
+      addedAt: new Date().toISOString(),
+    };
+    const updated = [...resources, newResource];
+    setResources(updated);
+    await AsyncStorage.setItem(STORAGE_KEYS.RESOURCES, JSON.stringify(updated));
+    await clearArticleCache();
+    console.log('[App] Added resource:', name, url);
+    if (user?.interests && user.interests.length > 0) {
+      loadArticlesForUser(user.interests, user?.isPremium ?? false, updated);
+    }
+  }, [resources, user, loadArticlesForUser]);
+
+  const removeResource = useCallback(async (id: string) => {
+    const updated = resources.filter(r => r.id !== id);
+    setResources(updated);
+    await AsyncStorage.setItem(STORAGE_KEYS.RESOURCES, JSON.stringify(updated));
+    await clearArticleCache();
+    console.log('[App] Removed resource:', id);
+    if (user?.interests && user.interests.length > 0) {
+      loadArticlesForUser(user.interests, user?.isPremium ?? false, updated);
+    }
+  }, [resources, user, loadArticlesForUser]);
+
   useEffect(() => {
     if (user && isOnboarded && user.interests.length > 0) {
-      loadArticlesForUser(user.interests, user.isPremium);
+      loadArticlesForUser(user.interests, user.isPremium, resources);
     }
   }, [user?.id, isOnboarded]);
 
@@ -426,7 +473,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     }
     if (isPremium && !wasPremium && user?.interests && user.interests.length > 0) {
       console.log('[App] User upgraded to premium, fetching 2 additional articles');
-      const additional = await fetchAdditionalArticles(user.interests, 2, articles);
+      const additional = await fetchAdditionalArticles(user.interests, 2, articles, resources);
       if (additional.length > 0) {
         setArticles(prev => [...prev, ...additional]);
       }
@@ -729,7 +776,7 @@ Respond in this exact JSON format:
 
     setUser(prev => prev ? { ...prev, interests } : null);
     await clearArticleCache();
-    loadArticlesForUser(interests, user.isPremium);
+    loadArticlesForUser(interests, user.isPremium, resources);
     queryClient.invalidateQueries({ queryKey: ['profile'] });
   }, [user, session, queryClient, loadArticlesForUser]);
 
@@ -768,6 +815,9 @@ Respond in this exact JSON format:
     generateInsight,
     insights,
     generatingInsightId,
+    resources,
+    addResource,
+    removeResource,
 
     isSigningUp: false,
     isSigningIn: false,

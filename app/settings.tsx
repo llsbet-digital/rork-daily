@@ -22,6 +22,7 @@ import {
   User,
   ChevronRight,
   Trash2,
+  Rss,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
@@ -30,7 +31,7 @@ import { useApp } from '@/providers/AppProvider';
 export default function SettingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user, signOut, deleteAccount, maxDailyReads, maxDailySaves } = useApp();
+  const { user, signOut, deleteAccount, maxDailyReads, maxDailySaves, resources } = useApp();
 
   const handleSignOut = React.useCallback(async () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -134,7 +135,7 @@ export default function SettingsScreen() {
           )}
         </View>
 
-        <Text style={styles.sectionLabel}>INTERESTS</Text>
+        <Text style={styles.sectionLabel}>CONTENT</Text>
         <View style={styles.sectionCard}>
           <TouchableOpacity
             style={styles.settingRow}
@@ -147,6 +148,21 @@ export default function SettingsScreen() {
             </View>
             <View style={styles.settingRight}>
               <Text style={styles.settingValue}>{user?.interests?.length ?? 0} topics</Text>
+              <ChevronRight size={18} color={Colors.textMuted} />
+            </View>
+          </TouchableOpacity>
+          <View style={styles.divider} />
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={() => router.push('/manage-resources' as any)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.settingLeft}>
+              <Rss size={20} color={Colors.primary} />
+              <Text style={styles.settingText}>My Sources</Text>
+            </View>
+            <View style={styles.settingRight}>
+              <Text style={styles.settingValue}>{resources?.length ?? 0} sources</Text>
               <ChevronRight size={18} color={Colors.textMuted} />
             </View>
           </TouchableOpacity>

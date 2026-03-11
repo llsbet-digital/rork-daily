@@ -51,3 +51,10 @@ export interface ArticleInsight {
 }
 
 export type AuthMode = 'signin' | 'signup';
+
+export interface NewsResource {
+  id: string;
+  name: string;
+  url: string;
+  addedAt: string;
+}
