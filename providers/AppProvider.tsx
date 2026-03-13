@@ -258,6 +258,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
   const loadArticlesForUser = useCallback(async (interests: string[], isPremium: boolean, resourceList?: NewsResource[]) => {
     if (!interests || interests.length === 0) return;
+    if (!resourceList || resourceList.length === 0) {
+      setArticles([]);
+      return;
+    }
     const count = isPremium ? 5 : 3;
     setArticlesLoading(true);
     try {

@@ -13,12 +13,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Plus, X, Tag } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
-import { useApp } from '@/providers/AppProvider';
-
 export default function OnboardingInterests() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { completeOnboarding } = useApp();
   const [interests, setInterests] = useState<string[]>([]);
   const [inputValue, setInputValue] = useState('');
   const scaleAnim = React.useRef(new Animated.Value(1)).current;
@@ -41,13 +38,12 @@ export default function OnboardingInterests() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
 
-  const handleContinue = useCallback(async () => {
+  const handleContinue = useCallback(() => {
     if (interests.length >= 3) {
-      await completeOnboarding(interests);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      router.replace('/(tabs)' as any);
+      router.push({ pathname: '/onboarding-sources', params: { interests: JSON.stringify(interests) } } as any);
     }
-  }, [interests, completeOnboarding, router]);
+  }, [interests, router]);
 
   const canContinue = interests.length >= 3;
 

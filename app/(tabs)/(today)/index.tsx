@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Sparkles, Bookmark, ThumbsUp, ThumbsDown } from 'lucide-react-native';
+import { Sparkles, Bookmark, ThumbsUp, ThumbsDown, Rss } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import * as WebBrowser from 'expo-web-browser';
 
@@ -191,6 +191,7 @@ export default function TodayScreen() {
     generateInsight,
     insights,
     generatingInsightId,
+    resources,
   } = useApp();
 
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
@@ -242,11 +243,26 @@ export default function TodayScreen() {
                 <ArticleSkeleton index={1} />
                 <ArticleSkeleton index={2} />
               </>
+            ) : !resources || resources.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Rss size={40} color={Colors.textMuted} />
+                <Text style={styles.emptyTitle}>No sources added</Text>
+                <Text style={styles.emptySubtitle}>
+                  Add your favorite websites and blogs so Paprr knows where to find your articles.
+                </Text>
+                <TouchableOpacity
+                  style={styles.addSourcesButton}
+                  onPress={() => router.push('/manage-resources' as any)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.addSourcesButtonText}>Add Sources</Text>
+                </TouchableOpacity>
+              </View>
             ) : dailyArticles.length === 0 && !articlesLoading ? (
               <View style={styles.emptyState}>
                 <Text style={styles.emptyTitle}>No articles yet</Text>
                 <Text style={styles.emptySubtitle}>
-                  Pull down to refresh, or update your interests in Settings.
+                  Pull down to refresh, or update your sources in Settings.
                 </Text>
               </View>
             ) : (
@@ -436,5 +452,17 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  addSourcesButton: {
+    marginTop: 16,
+    backgroundColor: Colors.primary,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+  },
+  addSourcesButtonText: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: '600' as const,
   },
 });

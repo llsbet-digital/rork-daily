@@ -43,7 +43,7 @@ async function searchArticlesWithOpenAI(interests: string[], count: number, reso
 
 ${resourceList}
 
-Only fall back to other free sources if a topic cannot be found in any of the user's sources.`
+Do NOT use any other sources. Only return articles found on the domains above.`
     : `Prefer free sources like BBC, Reuters, The Verge, TechCrunch, Ars Technica, The Guardian, AP News, NPR, Wired (free articles), etc.
 - Avoid sources like WSJ, Financial Times, NYT, The Athletic, Bloomberg (paywalled), and similar subscription-only publications.`;
 
