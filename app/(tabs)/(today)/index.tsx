@@ -6,10 +6,11 @@ import {
   ScrollView,
   TouchableOpacity,
   Animated,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Sparkles, Bookmark, ThumbsUp, ThumbsDown, Rss } from 'lucide-react-native';
+import { Sparkles, Bookmark, ThumbsUp, ThumbsDown } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import * as WebBrowser from 'expo-web-browser';
 
@@ -245,7 +246,11 @@ export default function TodayScreen() {
               </>
             ) : !resources || resources.length === 0 ? (
               <View style={styles.emptyState}>
-                <Rss size={40} color={Colors.textMuted} />
+                <Image
+                  source={require('@/assets/images/Resources.png')}
+                  style={styles.emptyImage}
+                  resizeMode="contain"
+                />
                 <Text style={styles.emptyTitle}>No sources added</Text>
                 <Text style={styles.emptySubtitle}>
                   Add your favorite websites and blogs so Paprr knows where to find your articles.
@@ -452,6 +457,11 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  emptyImage: {
+    width: 120,
+    height: 120,
+    marginBottom: 4,
   },
   addSourcesButton: {
     marginTop: 16,
