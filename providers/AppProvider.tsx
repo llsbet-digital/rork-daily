@@ -45,6 +45,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
   const [insights, setInsights] = useState<ArticleInsight[]>([]);
   const [generatingInsightId, setGeneratingInsightId] = useState<string | null>(null);
   const [resources, setResources] = useState<NewsResource[]>([]);
+  const [resourcesLoaded, setResourcesLoaded] = useState<boolean>(false);
 
   useEffect(() => {
     console.log('[App] Initializing Supabase auth listener');
@@ -249,6 +250,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
       }
     } catch (e) {
       console.log('[App] Failed to load resources:', e);
+    } finally {
+      setResourcesLoaded(true);
     }
   }, []);
 
@@ -305,10 +308,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
   }, [resources, user, loadArticlesForUser]);
 
   useEffect(() => {
-    if (user && isOnboarded && user.interests.length > 0) {
+    if (resourcesLoaded && user && isOnboarded && user.interests.length > 0) {
       loadArticlesForUser(user.interests, user.isPremium, resources);
     }
-  }, [user?.id, isOnboarded]);
+  }, [user?.id, isOnboarded, resourcesLoaded]);
 
   const maxDailyReads = user?.isPremium ? 5 : 3;
   const maxDailySaves = user?.isPremium ? 3 : 1;

@@ -260,7 +260,8 @@ export async function fetchDailyArticles(interests: string[], count: number, res
     console.log('[Articles] OpenAI fetch failed, using fallback:', error);
   }
 
-  if (articles.length < count) {
+  // Only use generic fallback when no user resources are set — never mix fallback with user sources
+  if (articles.length < count && (!resources || resources.length === 0)) {
     console.log('[Articles] Got', articles.length, 'articles but need', count, '- generating fallback articles');
     const existingIds = new Set(articles.map(a => a.id));
     const fallback = generateFallbackArticles(interests, count - articles.length, articles.length);
@@ -270,6 +271,8 @@ export async function fetchDailyArticles(interests: string[], count: number, res
       }
     }
     console.log('[Articles] Total after fallback:', articles.length);
+  } else if (articles.length < count) {
+    console.log('[Articles] Got', articles.length, '/', count, 'articles from user sources — no fallback applied');
   }
 
   if (articles.length > 0) {
