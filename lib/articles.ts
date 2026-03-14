@@ -34,42 +34,73 @@ async function searchArticlesWithOpenAI(interests: string[], count: number, reso
   const topicBreakdown = topicSlots.map((t, i) => `Article ${i + 1}: about "${t}"`).join('\n');
 
   const hasResources = resources && resources.length > 0;
-  const resourceList = hasResources
-    ? resources.map(r => `- ${r.name} (${r.url})`).join('\n')
-    : '';
 
-  const sourceInstructions = hasResources
-    ? `The user has added their own news sources. YOU MUST find articles EXCLUSIVELY from these sources:
+  // Extract clean domain names from resource URLs for search and filtering
+  const allowedDomains = hasResources
+    ? resources.map(r => {
+        try {
+          const url = r.url.startsWith('http') ? r.url : `https://${r.url}`;
+          return new URL(url).hostname.replace(/^www\./, '');
+        } catch {
+          return r.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0];
+        }
+      })
+    : [];
 
-${resourceList}
+  let prompt: string;
 
-Do NOT use any other sources. Only return articles found on the domains above.`
-    : `Prefer free sources like BBC, Reuters, The Verge, TechCrunch, Ars Technica, The Guardian, AP News, NPR, Wired (free articles), etc.
-- Avoid sources like WSJ, Financial Times, NYT, The Athletic, Bloomberg (paywalled), and similar subscription-only publications.`;
+  if (hasResources) {
+    // Build per-article search instructions using site: queries
+    const searchInstructions = topicSlots.map((topic, i) => {
+      const domain = allowedDomains[i % allowedDomains.length];
+      return `Article ${i + 1}: Search "site:${domain} ${topic}" — return an article from ${domain}`;
+    }).join('\n');
 
-  const prompt = `Find exactly ${count} real, recent news articles. Each article MUST be about the specific topic assigned below:
+    prompt = `You are a search assistant. For each article below, run the specified web search and return the result.
+
+${searchInstructions}
+
+STRICT RULES:
+- Every article URL MUST be from one of these domains: ${allowedDomains.join(', ')}
+- If a search returns no result from the correct domain, try another keyword variation on the same domain.
+- NEVER return a URL from any domain not listed above.
+- Return exactly ${count} articles.
+
+For each article provide:
+- title: the exact article title
+- url: the full URL (MUST be on one of: ${allowedDomains.join(', ')})
+- source: the site name
+- summary: 1-2 sentence summary
+- content: detailed article body (4-8 paragraphs), well-written with analysis and insights. Use line breaks between paragraphs.
+- category: the topic in UPPERCASE
+- readTime: estimated reading time in minutes (3-15)
+
+Respond with ONLY valid JSON, no markdown:
+{"articles":[{"title":"...","url":"https://...","source":"...","summary":"...","content":"...","category":"TOPIC","readTime":5}]}`;
+  } else {
+    prompt = `Find exactly ${count} real, recent FREE news articles from the internet. Each article MUST be about the specific topic assigned below:
 
 ${topicBreakdown}
-
-SOURCES:
-${sourceInstructions}
 
 IMPORTANT RULES:
 - You MUST return exactly ${count} articles, no more, no less.
 - Each article must match its assigned topic above.
 - Only include articles that are completely free to read — no paywalls, no subscription requirements.
+- Prefer free sources like BBC, Reuters, The Verge, TechCrunch, Ars Technica, The Guardian, AP News, NPR, Wired (free articles), etc.
+- Avoid WSJ, Financial Times, NYT, The Athletic, Bloomberg (paywalled).
 
-For each article, provide:
+For each article provide:
 - title: the exact article title
 - url: the real, working URL to the article
-- source: the publication name (e.g. TechCrunch, BBC, The Verge)
-- summary: a 1-2 sentence summary
-- content: a detailed, well-written article body (4-8 paragraphs). Write it as a proper article with rich detail, analysis, and insights. Use line breaks between paragraphs.
+- source: the publication name
+- summary: 1-2 sentence summary
+- content: detailed article body (4-8 paragraphs), well-written with analysis and insights. Use line breaks between paragraphs.
 - category: the topic in UPPERCASE
 - readTime: estimated reading time in minutes (3-15)
 
-Respond with ONLY a valid JSON object in this exact format, no markdown or extra text:
+Respond with ONLY valid JSON, no markdown:
 {"articles":[{"title":"...","url":"https://...","source":"...","summary":"...","content":"...","category":"TOPIC","readTime":5}]}`;
+  }
 
   console.log('[Articles] Calling OpenAI Responses API with web search...');
 
@@ -164,7 +195,23 @@ Respond with ONLY a valid JSON object in this exact format, no markdown or extra
   ];
 
   const articles: Article[] = data.articles
-    .filter(a => a.title && a.url && a.url.startsWith('http'))
+    .filter(a => {
+      if (!a.title || !a.url || !a.url.startsWith('http')) return false;
+      // Enforce domain restriction: reject articles not from the user's sources
+      if (allowedDomains.length > 0) {
+        try {
+          const articleHost = new URL(a.url).hostname.replace(/^www\./, '');
+          const allowed = allowedDomains.some(d => articleHost === d || articleHost.endsWith(`.${d}`));
+          if (!allowed) {
+            console.log('[Articles] Filtered out off-domain article:', articleHost, a.url);
+          }
+          return allowed;
+        } catch {
+          return false;
+        }
+      }
+      return true;
+    })
     .map((a, i) => ({
       id: `article-${today}-${i}`,
       title: a.title,
