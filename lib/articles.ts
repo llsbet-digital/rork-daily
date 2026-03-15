@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Article, NewsResource } from '@/types';
+import { Article, NewsResource, UserPreferences } from '@/types';
 
 const DAILY_ARTICLES_KEY = 'daily_articles_cache';
 const DAILY_DATE_KEY = 'daily_articles_date';
@@ -9,29 +9,77 @@ function getTodayDateString(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 }
 
-function buildInterestDistribution(interests: string[], count: number): string[] {
-  const distributed: string[] = [];
-  let idx = 0;
-  while (distributed.length < count) {
-    distributed.push(interests[idx % interests.length]);
-    idx++;
+function buildInterestDistribution(interests: string[], count: number, preferences?: UserPreferences): string[] {
+  // Weight each topic by net positive feedback (up - down), minimum weight 1
+  const weights = interests.map(topic => {
+    const pref = preferences?.topics[topic.toLowerCase()];
+    if (!pref) return 1;
+    return Math.max(1, pref.up - pref.down + 1);
+  });
+  const totalWeight = weights.reduce((s, w) => s + w, 0);
+
+  // Allocate slots proportionally, ensuring every interest gets at least 1
+  const slots: string[] = [];
+  const allocations = weights.map((w, i) => ({
+    topic: interests[i],
+    count: Math.max(1, Math.round((w / totalWeight) * count)),
+  }));
+
+  // Trim or pad to hit exact count
+  let total = allocations.reduce((s, a) => s + a.count, 0);
+  while (total > count) {
+    // Remove from lowest-weight topics first
+    const idx = allocations.reduce((minIdx, a, i) => a.count > 1 && weights[i] <= weights[minIdx] ? i : minIdx, 0);
+    allocations[idx].count--;
+    total--;
   }
-  for (let i = distributed.length - 1; i > 0; i--) {
+  while (total < count) {
+    // Add to highest-weight topics first
+    const idx = allocations.reduce((maxIdx, _a, i) => weights[i] > weights[maxIdx] ? i : maxIdx, 0);
+    allocations[idx].count++;
+    total++;
+  }
+
+  for (const { topic, count: n } of allocations) {
+    for (let i = 0; i < n; i++) slots.push(topic);
+  }
+
+  // Shuffle
+  for (let i = slots.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [distributed[i], distributed[j]] = [distributed[j], distributed[i]];
+    [slots[i], slots[j]] = [slots[j], slots[i]];
   }
-  return distributed;
+  return slots;
 }
 
-async function searchArticlesWithOpenAI(interests: string[], count: number, resources?: NewsResource[]): Promise<Article[]> {
+function buildPreferenceSummary(interests: string[], preferences?: UserPreferences): string {
+  if (!preferences || Object.keys(preferences.topics).length === 0) return '';
+  const liked: string[] = [];
+  const disliked: string[] = [];
+  for (const interest of interests) {
+    const pref = preferences.topics[interest.toLowerCase()];
+    if (!pref) continue;
+    const net = pref.up - pref.down;
+    if (net >= 2) liked.push(interest);
+    else if (net <= -2) disliked.push(interest);
+  }
+  if (liked.length === 0 && disliked.length === 0) return '';
+  const lines: string[] = ['USER PREFERENCES (based on past reading feedback):'];
+  if (liked.length > 0) lines.push(`- Topics user enjoys: ${liked.join(', ')}`);
+  if (disliked.length > 0) lines.push(`- Topics user dislikes: ${disliked.join(', ')} — minimise these`);
+  return lines.join('\n');
+}
+
+async function searchArticlesWithOpenAI(interests: string[], count: number, resources?: NewsResource[], preferences?: UserPreferences): Promise<Article[]> {
   const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error('OpenAI API key not configured');
   }
 
   const today = getTodayDateString();
-  const topicSlots = buildInterestDistribution(interests, count);
+  const topicSlots = buildInterestDistribution(interests, count, preferences);
   const topicBreakdown = topicSlots.map((t, i) => `Article ${i + 1}: about "${t}"`).join('\n');
+  const prefSummary = buildPreferenceSummary(interests, preferences);
 
   const hasResources = resources && resources.length > 0;
 
@@ -59,7 +107,7 @@ async function searchArticlesWithOpenAI(interests: string[], count: number, reso
     prompt = `You are a search assistant. For each article below, run the specified web search and return the result.
 
 ${searchInstructions}
-
+${prefSummary ? `\n${prefSummary}\n` : ''}
 STRICT RULES:
 - Every article URL MUST be from one of these domains: ${allowedDomains.join(', ')}
 - If a search returns no result from the correct domain, try another keyword variation on the same domain.
@@ -81,7 +129,7 @@ Respond with ONLY valid JSON, no markdown:
     prompt = `Find exactly ${count} real, recent FREE news articles from the internet. Each article MUST be about the specific topic assigned below:
 
 ${topicBreakdown}
-
+${prefSummary ? `\n${prefSummary}\n` : ''}
 IMPORTANT RULES:
 - You MUST return exactly ${count} articles, no more, no less.
 - Each article must match its assigned topic above.
@@ -233,7 +281,7 @@ Respond with ONLY valid JSON, no markdown:
   return articles;
 }
 
-export async function fetchDailyArticles(interests: string[], count: number, resources?: NewsResource[]): Promise<Article[]> {
+export async function fetchDailyArticles(interests: string[], count: number, resources?: NewsResource[], preferences?: UserPreferences): Promise<Article[]> {
   const today = getTodayDateString();
 
   try {
@@ -255,7 +303,7 @@ export async function fetchDailyArticles(interests: string[], count: number, res
 
   let articles: Article[] = [];
   try {
-    articles = await searchArticlesWithOpenAI(interests, count, resources);
+    articles = await searchArticlesWithOpenAI(interests, count, resources, preferences);
   } catch (error) {
     console.log('[Articles] OpenAI fetch failed, using fallback:', error);
   }
@@ -284,10 +332,10 @@ export async function fetchDailyArticles(interests: string[], count: number, res
   return articles;
 }
 
-export async function fetchAdditionalArticles(interests: string[], additionalCount: number, existingArticles: Article[], resources?: NewsResource[]): Promise<Article[]> {
+export async function fetchAdditionalArticles(interests: string[], additionalCount: number, existingArticles: Article[], resources?: NewsResource[], preferences?: UserPreferences): Promise<Article[]> {
   console.log('[Articles] Fetching', additionalCount, 'additional articles for upgrade');
   try {
-    const newArticles = await searchArticlesWithOpenAI(interests, additionalCount, resources);
+    const newArticles = await searchArticlesWithOpenAI(interests, additionalCount, resources, preferences);
     const today = getTodayDateString();
     const reindexed = newArticles.map((a, i) => ({
       ...a,

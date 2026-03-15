@@ -58,3 +58,12 @@ export interface NewsResource {
   url: string;
   addedAt: string;
 }
+
+export interface TopicPreference {
+  up: number;
+  down: number;
+}
+
+export interface UserPreferences {
+  topics: Record<string, TopicPreference>;
+}

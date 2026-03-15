@@ -3,7 +3,7 @@ import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import createContextHook from '@nkzw/create-context-hook';
-import { User, Article, ArticleInsight, NewsResource } from '@/types';
+import { User, Article, ArticleInsight, NewsResource, UserPreferences } from '@/types';
 import { fetchDailyArticles, fetchAdditionalArticles, clearArticleCache } from '@/lib/articles';
 import { supabase, UserProfile } from '@/lib/supabase';
 import { Session } from '@supabase/supabase-js';
@@ -13,6 +13,7 @@ const STORAGE_KEYS = {
   ARTICLES: 'daily_articles',
   INSIGHTS: 'article_insights',
   RESOURCES: 'user_news_resources',
+  PREFERENCES: 'user_topic_preferences',
 } as const;
 
 function profileToUser(profile: UserProfile): User {
@@ -46,6 +47,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
   const [generatingInsightId, setGeneratingInsightId] = useState<string | null>(null);
   const [resources, setResources] = useState<NewsResource[]>([]);
   const [resourcesLoaded, setResourcesLoaded] = useState<boolean>(false);
+  const [preferences, setPreferences] = useState<UserPreferences>({ topics: {} });
 
   useEffect(() => {
     console.log('[App] Initializing Supabase auth listener');
@@ -259,6 +261,21 @@ export const [AppProvider, useApp] = createContextHook(() => {
     loadResources();
   }, [loadResources]);
 
+  const loadPreferences = useCallback(async () => {
+    try {
+      const stored = await AsyncStorage.getItem(STORAGE_KEYS.PREFERENCES);
+      if (stored) {
+        setPreferences(JSON.parse(stored) as UserPreferences);
+      }
+    } catch (e) {
+      console.log('[App] Failed to load preferences:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadPreferences();
+  }, [loadPreferences]);
+
   const loadArticlesForUser = useCallback(async (interests: string[], isPremium: boolean, resourceList?: NewsResource[]) => {
     if (!interests || interests.length === 0) return;
     if (!resourceList || resourceList.length === 0) {
@@ -268,7 +285,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     const count = isPremium ? 5 : 3;
     setArticlesLoading(true);
     try {
-      const fetched = await fetchDailyArticles(interests, count, resourceList);
+      const fetched = await fetchDailyArticles(interests, count, resourceList, preferences);
       setArticles(fetched);
       console.log('[App] Loaded', fetched.length, 'articles');
     } catch (error) {
@@ -480,7 +497,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     }
     if (isPremium && !wasPremium && user?.interests && user.interests.length > 0) {
       console.log('[App] User upgraded to premium, fetching 2 additional articles');
-      const additional = await fetchAdditionalArticles(user.interests, 2, articles, resources);
+      const additional = await fetchAdditionalArticles(user.interests, 2, articles, resources, preferences);
       if (additional.length > 0) {
         setArticles(prev => [...prev, ...additional]);
       }
@@ -489,9 +506,40 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
   const feedbackArticle = useCallback(async (articleId: string, feedback: 'up' | 'down') => {
     const toggle = (current: 'up' | 'down' | null) => current === feedback ? null : feedback;
+
+    let previousFeedback: 'up' | 'down' | null = null;
+    let articleCategory: string | null = null as string | null;
+
     setArticles(prev =>
-      prev.map(a => a.id === articleId ? { ...a, feedback: toggle(a.feedback) } : a)
+      prev.map(a => {
+        if (a.id === articleId) {
+          previousFeedback = a.feedback;
+          articleCategory = a.category;
+          return { ...a, feedback: toggle(a.feedback) };
+        }
+        return a;
+      })
     );
+
+    // Update topic preferences in AsyncStorage
+    if (articleCategory) {
+      const topic = articleCategory.toLowerCase();
+      const newFeedback = previousFeedback === feedback ? null : feedback;
+      setPreferences(prev => {
+        const current = prev.topics[topic] ?? { up: 0, down: 0 };
+        const updated = { ...current };
+        // Undo previous feedback if toggling
+        if (previousFeedback === 'up') updated.up = Math.max(0, updated.up - 1);
+        if (previousFeedback === 'down') updated.down = Math.max(0, updated.down - 1);
+        // Apply new feedback
+        if (newFeedback === 'up') updated.up += 1;
+        if (newFeedback === 'down') updated.down += 1;
+        const next = { ...prev, topics: { ...prev.topics, [topic]: updated } };
+        AsyncStorage.setItem(STORAGE_KEYS.PREFERENCES, JSON.stringify(next)).catch(() => {});
+        return next;
+      });
+    }
+
     if (session?.user?.id && savedArticleIds.has(articleId)) {
       const savedRow = (savedArticlesQuery.data || []).find(r => r.article_id === articleId);
       if (savedRow) {
@@ -504,7 +552,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
         queryClient.invalidateQueries({ queryKey: ['savedArticles'] });
       }
     }
-    console.log('[App] Article feedback:', articleId, feedback);
+    console.log('[App] Article feedback:', articleId, feedback, 'topic:', articleCategory);
   }, [savedArticleIds, savedArticlesQuery.data, session, queryClient]);
 
   const markArticleRead = useCallback((articleId: string) => {
