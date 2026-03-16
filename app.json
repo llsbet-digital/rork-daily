@@ -19,8 +19,7 @@
       "buildNumber": "1",
       "infoPlist": {
         "NSCameraUsageDescription": "Allow Paprr to access your camera to update your profile photo.",
-        "NSPhotoLibraryUsageDescription": "Allow Paprr to access your photo library to update your profile photo.",
-        "NSUserTrackingUsageDescription": "This helps us provide a better experience and relevant content recommendations."
+        "NSPhotoLibraryUsageDescription": "Allow Paprr to access your photo library to update your profile photo."
       }
     },
     "android": {
