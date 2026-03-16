@@ -10,15 +10,13 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Search, Bookmark, ChevronRight, ThumbsUp, ThumbsDown } from 'lucide-react-native';
+import { Search, BookmarkMinus, ChevronRight, ThumbsUp, ThumbsDown, Settings } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import * as WebBrowser from 'expo-web-browser';
 import { Image } from 'react-native';
-import Colors from '@/constants/colors';
+import Colors, { CARD_COLORS } from '@/constants/colors';
 import { useApp } from '@/providers/AppProvider';
 import { Article } from '@/types';
-
-const CARD_COLORS = ['#E8DFF5', '#F5E6D3', '#E5F1F0', '#FCF4E9'] as const;
 
 function LibraryArticleCard({ article, onSave, onFeedback, index }: {
   article: Article;
@@ -54,7 +52,12 @@ function LibraryArticleCard({ article, onSave, onFeedback, index }: {
       onPress={handlePress}
     >
       <View style={styles.cardTopRow}>
-        <Text style={styles.articleCategory}>{article.category}</Text>
+        <View>
+          <Text style={styles.articleCategory}>{article.category}</Text>
+          {article.source ? (
+            <Text style={styles.articleSource}>{article.source}</Text>
+          ) : null}
+        </View>
         <View style={styles.cardTopRight}>
           <TouchableOpacity
             onPress={() => {
@@ -63,16 +66,27 @@ function LibraryArticleCard({ article, onSave, onFeedback, index }: {
             }}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Bookmark
+            <BookmarkMinus
               size={18}
               color={Colors.primary}
-              fill={Colors.primary}
             />
           </TouchableOpacity>
         </View>
       </View>
 
       <Text style={styles.articleTitle}>{article.title}</Text>
+
+      {article.publishedAt ? (
+        <Text style={styles.articleDate}>
+          {(() => {
+            const days = Math.floor((Date.now() - new Date(article.publishedAt).getTime()) / 86400000);
+            if (days === 0) return 'Today';
+            if (days === 1) return '1 day ago';
+            if (days < 30) return `${days} days ago`;
+            return new Date(article.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          })()}
+        </Text>
+      ) : null}
 
       <View style={styles.cardBottom}>
         <View style={styles.feedbackRow}>
@@ -151,7 +165,12 @@ export default function LibraryScreen() {
             </View>
           </TouchableOpacity>
           <Text style={styles.topBarTitle}>Library</Text>
-          <View style={{ width: 38 }} />
+          <TouchableOpacity
+            onPress={() => router.push('/settings' as any)}
+            activeOpacity={0.7}
+          >
+            <Settings size={22} color={Colors.text} />
+          </TouchableOpacity>
         </View>
 
         <View style={styles.searchContainer}>
@@ -298,6 +317,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500' as const,
     color: 'rgba(0,0,0,0.55)',
+  },
+  articleSource: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  articleDate: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    marginBottom: 8,
   },
   articleTitle: {
     fontSize: 24,

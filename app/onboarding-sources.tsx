@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
   continueButton: {
-    backgroundColor: Colors.dark,
+    backgroundColor: Colors.primary,
     borderRadius: 14,
     paddingVertical: 16,
     paddingHorizontal: 28,

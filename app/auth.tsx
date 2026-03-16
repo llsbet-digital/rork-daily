@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'react-native';
+import { Eye, EyeOff } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 import { useApp } from '@/providers/AppProvider';
@@ -26,6 +27,10 @@ export default function AuthScreen() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [nameError, setNameError] = useState('');
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
@@ -68,8 +73,35 @@ export default function AuthScreen() {
     }
   }, [email, password, name, mode, signIn, signUp]);
 
+  const validateEmail = useCallback((val: string) => {
+    if (!val.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim())) {
+      setEmailError('Please enter a valid email address');
+    } else {
+      setEmailError('');
+    }
+  }, []);
+
+  const validatePassword = useCallback((val: string) => {
+    if (val.length < 6) {
+      setPasswordError('Password must be at least 6 characters');
+    } else {
+      setPasswordError('');
+    }
+  }, []);
+
+  const validateName = useCallback((val: string) => {
+    if (!val.trim()) {
+      setNameError('Name is required');
+    } else {
+      setNameError('');
+    }
+  }, []);
+
   const toggleMode = useCallback(() => {
     setMode(prev => prev === 'signin' ? 'signup' : 'signin');
+    setEmailError('');
+    setPasswordError('');
+    setNameError('');
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
 
@@ -96,45 +128,64 @@ export default function AuthScreen() {
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>NAME</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, nameError ? styles.inputError : null]}
                 placeholder="Your name"
                 placeholderTextColor={Colors.textMuted}
                 value={name}
-                onChangeText={setName}
+                onChangeText={(v) => { setName(v); if (nameError) setNameError(''); }}
+                onBlur={() => validateName(name)}
                 autoCapitalize="words"
                 editable={!isSubmitting}
                 testID="name-input"
               />
+              {nameError ? <Text style={styles.fieldError}>{nameError}</Text> : null}
             </View>
           )}
 
           <View style={styles.fieldGroup}>
             <Text style={styles.fieldLabel}>EMAIL</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, emailError ? styles.inputError : null]}
               placeholder="you@example.com"
               placeholderTextColor={Colors.textMuted}
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(v) => { setEmail(v); if (emailError) setEmailError(''); }}
+              onBlur={() => validateEmail(email)}
               keyboardType="email-address"
               autoCapitalize="none"
               editable={!isSubmitting}
               testID="email-input"
             />
+            {emailError ? <Text style={styles.fieldError}>{emailError}</Text> : null}
           </View>
 
           <View style={styles.fieldGroup}>
             <Text style={styles.fieldLabel}>PASSWORD</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="At least 6 characters"
-              placeholderTextColor={Colors.textMuted}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              editable={!isSubmitting}
-              testID="password-input"
-            />
+            <View style={styles.passwordRow}>
+              <TextInput
+                style={[styles.input, styles.passwordInput, passwordError ? styles.inputError : null]}
+                placeholder="At least 6 characters"
+                placeholderTextColor={Colors.textMuted}
+                value={password}
+                onChangeText={(v) => { setPassword(v); if (passwordError) setPasswordError(''); }}
+                onBlur={() => validatePassword(password)}
+                secureTextEntry={!showPassword}
+                editable={!isSubmitting}
+                testID="password-input"
+              />
+              <TouchableOpacity
+                style={styles.eyeButton}
+                onPress={() => setShowPassword(v => !v)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                {showPassword ? (
+                  <Eye size={20} color={Colors.textSecondary} />
+                ) : (
+                  <EyeOff size={20} color={Colors.textSecondary} />
+                )}
+              </TouchableOpacity>
+            </View>
+            {passwordError ? <Text style={styles.fieldError}>{passwordError}</Text> : null}
           </View>
 
           <TouchableOpacity
@@ -221,8 +272,29 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.inputBorder,
   },
+  inputError: {
+    borderColor: Colors.error,
+  },
+  fieldError: {
+    fontSize: 12,
+    color: Colors.error,
+    marginTop: 4,
+  },
+  passwordRow: {
+    position: 'relative' as const,
+  },
+  passwordInput: {
+    paddingRight: 48,
+  },
+  eyeButton: {
+    position: 'absolute' as const,
+    right: 14,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+  },
   authButton: {
-    backgroundColor: Colors.dark,
+    backgroundColor: Colors.primary,
     borderRadius: 16,
     paddingVertical: 18,
     alignItems: 'center',

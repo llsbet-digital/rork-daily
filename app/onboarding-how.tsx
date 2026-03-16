@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
   nextButton: {
-    backgroundColor: Colors.dark,
+    backgroundColor: Colors.primary,
     borderRadius: 14,
     paddingVertical: 16,
     paddingHorizontal: 40,

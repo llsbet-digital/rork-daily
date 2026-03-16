@@ -1,3 +1,5 @@
+export const CARD_COLORS = ['#E8DFF5', '#F5E6D3', '#E5F1F0', '#FCF4E9'] as const;
+
 const Colors = {
   background: '#F5F5F5',
   cardBackground: '#FFFFFF',

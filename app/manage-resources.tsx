@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { X, Plus, Trash2, Globe, Link } from 'lucide-react-native';
+import { X, Plus, Trash2, Link } from 'lucide-react-native';
+import { Image } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 import { useApp } from '@/providers/AppProvider';
@@ -100,7 +101,7 @@ export default function ManageResourcesScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <Text style={styles.description}>
-            Add websites or blogs you want your daily articles to come from. When sources are added, OpenAI will prioritize finding content from them.
+            Add websites or blogs you want your daily articles to come from. When sources are added, Paprr will prioritize finding articles from them.
           </Text>
 
           {showForm && (
@@ -153,10 +154,14 @@ export default function ManageResourcesScreen() {
 
           {resources.length === 0 && !showForm ? (
             <View style={styles.emptyState}>
-              <Globe size={40} color={Colors.textMuted} />
+              <Image
+                source={require('@/assets/images/Resources.png')}
+                style={styles.emptyImage}
+                resizeMode="contain"
+              />
               <Text style={styles.emptyTitle}>No sources yet</Text>
               <Text style={styles.emptyText}>
-                Tap + to add your first source. Without custom sources, articles are pulled from across the web based on your interests.
+                Tap + to add your first source. Your daily articles will come from the websites and blogs you add here.
               </Text>
             </View>
           ) : (
@@ -254,12 +259,12 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: Colors.inputBackground,
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    fontSize: 15,
+    borderColor: Colors.inputBorder,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
     color: Colors.text,
   },
   formActions: {
@@ -347,8 +352,14 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: 48,
+    paddingVertical: 32,
     gap: 12,
+  },
+  emptyImage: {
+    width: 120,
+    height: 120,
+    opacity: 0.6,
+    marginBottom: 4,
   },
   emptyTitle: {
     fontSize: 17,

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -10,17 +10,16 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Sparkles, Bookmark, ThumbsUp, ThumbsDown } from 'lucide-react-native';
+import { Sparkles, Bookmark, ThumbsUp, ThumbsDown, Settings } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import * as WebBrowser from 'expo-web-browser';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import Colors from '@/constants/colors';
+import Colors, { CARD_COLORS } from '@/constants/colors';
 import { useApp } from '@/providers/AppProvider';
 import { Article } from '@/types';
 
-const CARD_COLORS = ['#E8DFF5', '#F5E6D3', '#E5F1F0', '#FCF4E9'] as const;
-
-function ArticleCard({ article, onSave, onRead, onFeedback, onGenerateInsight, index, isGenerating, hasInsight }: {
+function ArticleCard({ article, onSave, onRead, onFeedback, onGenerateInsight, index, isGenerating, hasInsight, showTooltip, onDismissTooltip }: {
   article: Article;
   onSave: () => void;
   onRead: () => void;
@@ -29,6 +28,8 @@ function ArticleCard({ article, onSave, onRead, onFeedback, onGenerateInsight, i
   index: number;
   isGenerating: boolean;
   hasInsight: boolean;
+  showTooltip?: boolean;
+  onDismissTooltip?: () => void;
 }) {
   const router = useRouter();
   const spinAnim = React.useRef(new Animated.Value(0)).current;
@@ -129,25 +130,40 @@ function ArticleCard({ article, onSave, onRead, onFeedback, onGenerateInsight, i
             />
           </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          style={[styles.sparkButton, hasInsight && styles.sparkButtonActive]}
-          onPress={() => {
-            if (!isGenerating) {
-              onGenerateInsight();
-              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            }
-          }}
-          activeOpacity={0.7}
-          disabled={isGenerating}
-        >
-          {isGenerating ? (
-            <Animated.View style={{ transform: [{ rotate: spin }] }}>
-              <Sparkles size={18} color={'#1A1A1A'} />
-            </Animated.View>
-          ) : (
-            <Sparkles size={18} color={hasInsight ? Colors.white : '#1A1A1A'} fill={hasInsight ? Colors.white : 'transparent'} />
+        <View>
+          {showTooltip && (
+            <View style={styles.tooltipContainer} pointerEvents="box-none">
+              <TouchableOpacity
+                style={styles.tooltipPill}
+                onPress={onDismissTooltip}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.tooltipText}>Tap to generate an insight</Text>
+              </TouchableOpacity>
+              <View style={styles.tooltipArrow} />
+            </View>
           )}
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.sparkButton, hasInsight && styles.sparkButtonActive]}
+            onPress={() => {
+              if (!isGenerating) {
+                onGenerateInsight();
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              }
+              onDismissTooltip?.();
+            }}
+            activeOpacity={0.7}
+            disabled={isGenerating}
+          >
+            {isGenerating ? (
+              <Animated.View style={{ transform: [{ rotate: spin }] }}>
+                <Sparkles size={18} color={'#1A1A1A'} />
+              </Animated.View>
+            ) : (
+              <Sparkles size={18} color={hasInsight ? Colors.white : '#1A1A1A'} fill={hasInsight ? Colors.white : 'transparent'} />
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -196,6 +212,7 @@ export default function TodayScreen() {
   } = useApp();
 
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const [showSparkleTooltip, setShowSparkleTooltip] = useState(false);
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -203,6 +220,19 @@ export default function TodayScreen() {
       duration: 500,
       useNativeDriver: true,
     }).start();
+  }, []);
+
+  useEffect(() => {
+    if (dailyArticles.length > 0) {
+      AsyncStorage.getItem('has_seen_sparkle_tooltip').then(val => {
+        if (!val) setShowSparkleTooltip(true);
+      });
+    }
+  }, [dailyArticles.length]);
+
+  const dismissTooltip = useCallback(() => {
+    setShowSparkleTooltip(false);
+    AsyncStorage.setItem('has_seen_sparkle_tooltip', '1').catch(() => {});
   }, []);
 
   const handleGenerateInsight = useCallback(async (articleId: string) => {
@@ -229,7 +259,12 @@ export default function TodayScreen() {
             </View>
           </TouchableOpacity>
           <Text style={styles.topBarTitle}>Today</Text>
-          <View style={{ width: 38 }} />
+          <TouchableOpacity
+            onPress={() => router.push('/settings' as any)}
+            activeOpacity={0.7}
+          >
+            <Settings size={22} color={Colors.text} />
+          </TouchableOpacity>
         </View>
 
 
@@ -282,6 +317,8 @@ export default function TodayScreen() {
                   onGenerateInsight={() => handleGenerateInsight(article.id)}
                   isGenerating={generatingInsightId === article.id}
                   hasInsight={insights.some(i => i.articleId === article.id)}
+                  showTooltip={idx === 0 && showSparkleTooltip}
+                  onDismissTooltip={dismissTooltip}
                 />
               ))
             )}
@@ -412,6 +449,36 @@ const styles = StyleSheet.create({
   },
   sparkButtonActive: {
     backgroundColor: Colors.primary,
+  },
+  tooltipContainer: {
+    position: 'absolute' as const,
+    bottom: 48,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  tooltipPill: {
+    backgroundColor: Colors.dark,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  tooltipText: {
+    color: Colors.white,
+    fontSize: 12,
+    fontWeight: '500' as const,
+  },
+  tooltipArrow: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderTopWidth: 6,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: Colors.dark,
+    marginRight: 14,
+    alignSelf: 'flex-end' as const,
   },
   skeletonCategory: {
     width: 80,

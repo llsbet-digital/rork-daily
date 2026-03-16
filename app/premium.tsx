@@ -125,14 +125,18 @@ export default function PremiumScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-      <TouchableOpacity
-        style={styles.closeButton}
-        onPress={() => router.back()}
-        activeOpacity={0.7}
-        disabled={isProcessing}
-      >
-        <X size={22} color={Colors.text} />
-      </TouchableOpacity>
+      <View style={styles.headerRow}>
+        <TouchableOpacity
+          style={styles.closeButton}
+          onPress={() => router.back()}
+          activeOpacity={0.7}
+          disabled={isProcessing}
+        >
+          <X size={22} color={Colors.text} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Upgrade</Text>
+        <View style={{ width: 38 }} />
+      </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <Animated.View style={[styles.content, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
@@ -307,6 +311,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: Colors.text,
+    fontFamily: 'CrimsonText_700Bold',
+  },
   closeButton: {
     width: 38,
     height: 38,
@@ -314,8 +331,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.cardBackground,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 20,
-    marginTop: 12,
     borderWidth: 1,
     borderColor: Colors.border,
   },
@@ -501,7 +516,7 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
   upgradeButton: {
-    backgroundColor: Colors.dark,
+    backgroundColor: Colors.primary,
     borderRadius: 16,
     paddingVertical: 18,
     paddingHorizontal: 32,

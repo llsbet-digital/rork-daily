@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  TextInput,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,6 +24,8 @@ import {
   ChevronRight,
   Trash2,
   Rss,
+  Pencil,
+  Check,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
@@ -31,7 +34,10 @@ import { useApp } from '@/providers/AppProvider';
 export default function SettingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user, signOut, deleteAccount, maxDailyReads, maxDailySaves, resources } = useApp();
+  const { user, signOut, deleteAccount, maxDailyReads, maxDailySaves, resources, updateProfileName } = useApp();
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState('');
+  const [savingName, setSavingName] = useState(false);
 
   const handleSignOut = React.useCallback(async () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -62,7 +68,23 @@ export default function SettingsScreen() {
     );
   }, [deleteAccount, router]);
 
+  const handleSaveName = useCallback(async () => {
+    const trimmed = nameInput.trim();
+    if (!trimmed) return;
+    setSavingName(true);
+    try {
+      await updateProfileName(trimmed);
+      setEditingName(false);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch {
+      Alert.alert('Error', 'Failed to update name. Please try again.');
+    } finally {
+      setSavingName(false);
+    }
+  }, [nameInput, updateProfileName]);
+
   const initials = user?.name ? user.name.charAt(0).toUpperCase() : user?.email ? user.email.charAt(0).toUpperCase() : 'U';
+  const streak = user?.streak ?? 0;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -87,7 +109,39 @@ export default function SettingsScreen() {
             <User size={28} color={Colors.primary} />
           </View>
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{user?.name || user?.email?.split('@')[0] || 'User'}</Text>
+            {editingName ? (
+              <View style={styles.editNameRow}>
+                <TextInput
+                  style={styles.nameInput}
+                  value={nameInput}
+                  onChangeText={setNameInput}
+                  autoFocus
+                  autoCapitalize="words"
+                  returnKeyType="done"
+                  onSubmitEditing={handleSaveName}
+                  editable={!savingName}
+                />
+                <TouchableOpacity
+                  onPress={handleSaveName}
+                  disabled={savingName || !nameInput.trim()}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Check size={18} color={Colors.primary} />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.nameRow}
+                onPress={() => {
+                  setNameInput(user?.name || '');
+                  setEditingName(true);
+                }}
+                activeOpacity={0.6}
+              >
+                <Text style={styles.profileName}>{user?.name || user?.email?.split('@')[0] || 'User'}</Text>
+                <Pencil size={14} color={Colors.textSecondary} />
+              </TouchableOpacity>
+            )}
             <Text style={styles.profilePlan}>{user?.isPremium ? 'Premium' : 'Free'}</Text>
           </View>
         </View>
@@ -210,7 +264,7 @@ export default function SettingsScreen() {
               <Flame size={20} color={Colors.textSecondary} />
               <Text style={styles.settingText}>Current Streak</Text>
             </View>
-            <Text style={styles.settingValue}>{user?.streak ?? 0} days</Text>
+            <Text style={styles.settingValue}>{streak} {streak === 1 ? 'day' : 'days'}</Text>
           </View>
           <View style={styles.divider} />
           <View style={styles.settingRow}>
@@ -336,5 +390,26 @@ const styles = StyleSheet.create({
   },
   deleteText: {
     color: Colors.error,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  editNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 2,
+  },
+  nameInput: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: Colors.text,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.primary,
+    paddingVertical: 2,
   },
 });

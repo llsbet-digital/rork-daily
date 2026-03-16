@@ -817,6 +817,22 @@ Respond in this exact JSON format:
     }
   }, [articles, libraryArticles, insights, persistInsights, user?.isPremium]);
 
+  const updateProfileName = useCallback(async (name: string) => {
+    if (!user || !session?.user?.id) return;
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ name })
+      .eq('id', session.user.id);
+
+    if (error) {
+      console.log('[App] Failed to update name:', error.message);
+      throw error;
+    }
+
+    setUser(prev => prev ? { ...prev, name } : null);
+  }, [user, session]);
+
   const updateInterests = useCallback(async (interests: string[]) => {
     if (!user || !session?.user?.id) return;
 
@@ -867,6 +883,7 @@ Respond in this exact JSON format:
     markArticleRead,
     toggleSaveArticle,
     updateInterests,
+    updateProfileName,
     generateInsight,
     insights,
     generatingInsightId,
