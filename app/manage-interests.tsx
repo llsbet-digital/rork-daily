@@ -134,9 +134,9 @@ const rowStyles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: BADGE_PADDING_H,
     borderRadius: 22,
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: '#1A1A1A',
+    backgroundColor: Colors.cardBackground,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   badgeSelected: {
     backgroundColor: Colors.primary,
@@ -220,24 +220,7 @@ export default function ManageInterestsScreen() {
           <ArrowLeft size={22} color={Colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Your Interests</Text>
-        <TouchableOpacity
-          style={[
-            styles.saveButton,
-            (!hasChanges || interests.length < 3) && styles.saveButtonDisabled,
-          ]}
-          onPress={handleSave}
-          activeOpacity={hasChanges && interests.length >= 3 ? 0.7 : 1}
-          disabled={!hasChanges || interests.length < 3 || isSaving}
-        >
-          <Text
-            style={[
-              styles.saveButtonText,
-              (!hasChanges || interests.length < 3) && styles.saveButtonTextDisabled,
-            ]}
-          >
-            {isSaving ? 'Saving...' : 'Save'}
-          </Text>
-        </TouchableOpacity>
+        <View style={{ width: 38 }} />
       </View>
 
       <Animated.View style={[styles.scrollingArea, { opacity: fadeAnim }]}>
@@ -304,6 +287,17 @@ export default function ManageInterestsScreen() {
         {interests.length < 3 && interests.length > 0 && (
           <Text style={styles.minHint}>Add {3 - interests.length} more to save</Text>
         )}
+
+        <TouchableOpacity
+          style={[styles.saveFullButton, (!hasChanges || interests.length < 3) && styles.saveFullButtonDisabled]}
+          onPress={handleSave}
+          activeOpacity={hasChanges && interests.length >= 3 ? 0.8 : 1}
+          disabled={!hasChanges || interests.length < 3 || isSaving}
+        >
+          <Text style={[styles.saveFullButtonText, (!hasChanges || interests.length < 3) && styles.saveFullButtonTextDisabled]}>
+            {isSaving ? 'Saving...' : 'Save Changes'}
+          </Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -334,23 +328,6 @@ const styles = StyleSheet.create({
     fontWeight: '700' as const,
     color: Colors.text,
     fontFamily: 'CrimsonText_700Bold',
-  },
-  saveButton: {
-    backgroundColor: Colors.primary,
-    borderRadius: 20,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  saveButtonDisabled: {
-    backgroundColor: Colors.border,
-  },
-  saveButtonText: {
-    fontSize: 15,
-    fontWeight: '600' as const,
-    color: Colors.white,
-  },
-  saveButtonTextDisabled: {
-    color: Colors.textMuted,
   },
   scrollingArea: {
     flex: 1,
@@ -474,5 +451,24 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: 'center',
     marginTop: 10,
+    marginBottom: 4,
+  },
+  saveFullButton: {
+    backgroundColor: Colors.text,
+    borderRadius: 14,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 14,
+  },
+  saveFullButtonDisabled: {
+    backgroundColor: Colors.border,
+  },
+  saveFullButtonText: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: '600' as const,
+  },
+  saveFullButtonTextDisabled: {
+    color: Colors.textMuted,
   },
 });
