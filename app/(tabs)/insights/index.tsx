@@ -303,7 +303,7 @@ export default function InsightsScreen() {
               style={styles.emptyImage}
               resizeMode="contain"
             />
-            <Text style={styles.emptyTitle}>No insights for {selectedDateLabel.toLowerCase()}</Text>
+            <Text style={styles.emptyTitle}>No insights for this day</Text>
             <Text style={styles.emptySubtitle}>
               Tap the sparkle button on any article card to extract key learnings and highlights
             </Text>
