@@ -295,8 +295,8 @@ const styles = StyleSheet.create({
   },
   authButton: {
     backgroundColor: Colors.primary,
-    borderRadius: 16,
-    paddingVertical: 18,
+    borderRadius: 14,
+    paddingVertical: 16,
     alignItems: 'center',
     marginTop: 8,
   },

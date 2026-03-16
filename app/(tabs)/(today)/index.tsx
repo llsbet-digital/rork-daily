@@ -110,7 +110,7 @@ function ArticleCard({ article, onSave, onRead, onFeedback, onGenerateInsight, i
             style={[styles.feedbackBtn, article.feedback === 'up' && styles.feedbackBtnActive]}
           >
             <ThumbsUp
-              size={15}
+              size={16}
               color={article.feedback === 'up' ? '#1A1A1A' : 'rgba(0,0,0,0.3)'}
               fill={article.feedback === 'up' ? '#1A1A1A' : 'transparent'}
             />
@@ -124,7 +124,7 @@ function ArticleCard({ article, onSave, onRead, onFeedback, onGenerateInsight, i
             style={[styles.feedbackBtn, article.feedback === 'down' && styles.feedbackBtnActive]}
           >
             <ThumbsDown
-              size={15}
+              size={16}
               color={article.feedback === 'down' ? '#E05555' : 'rgba(0,0,0,0.3)'}
               fill={article.feedback === 'down' ? '#E05555' : 'transparent'}
             />
@@ -157,10 +157,10 @@ function ArticleCard({ article, onSave, onRead, onFeedback, onGenerateInsight, i
           >
             {isGenerating ? (
               <Animated.View style={{ transform: [{ rotate: spin }] }}>
-                <Sparkles size={18} color={'#1A1A1A'} />
+                <Sparkles size={16} color={'#1A1A1A'} />
               </Animated.View>
             ) : (
-              <Sparkles size={18} color={hasInsight ? Colors.white : '#1A1A1A'} fill={hasInsight ? Colors.white : 'transparent'} />
+              <Sparkles size={16} color={hasInsight ? Colors.white : '#1A1A1A'} fill={hasInsight ? Colors.white : 'transparent'} />
             )}
           </TouchableOpacity>
         </View>
@@ -358,10 +358,10 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
   },
   topBarTitle: {
-    fontSize: 18,
-    fontWeight: '600' as const,
+    fontSize: 22,
+    fontWeight: '700' as const,
     color: Colors.text,
-    fontFamily: 'CrimsonText_600SemiBold',
+    fontFamily: 'CrimsonText_700Bold',
   },
 
   scrollContent: {
@@ -403,18 +403,18 @@ const styles = StyleSheet.create({
   },
 
   articleTitle: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: '700' as const,
     color: Colors.text,
     marginBottom: 10,
-    lineHeight: 30,
+    lineHeight: 24,
     letterSpacing: -0.3,
     fontFamily: 'CrimsonText_700Bold',
   },
   articleSummary: {
-    fontSize: 14,
+    fontSize: 16,
     color: 'rgba(0,0,0,0.5)',
-    lineHeight: 21,
+    lineHeight: 23,
     marginBottom: 20,
   },
   cardBottom: {
@@ -429,21 +429,21 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   feedbackBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: 'rgba(255,255,255,0.6)',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.7)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   feedbackBtnActive: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(0,0,0,0.08)',
   },
   sparkButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.7)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -508,9 +508,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.08)',
   },
   emptyState: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 40,
     paddingHorizontal: 20,
+    paddingVertical: 60,
   },
   emptyTitle: {
     fontSize: 18,
@@ -534,7 +536,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     backgroundColor: Colors.primary,
     borderRadius: 14,
-    paddingVertical: 14,
+    paddingVertical: 16,
     paddingHorizontal: 32,
   },
   addSourcesButtonText: {

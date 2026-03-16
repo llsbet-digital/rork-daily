@@ -229,10 +229,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600' as const,
+    fontSize: 22,
+    fontWeight: '700' as const,
     color: Colors.text,
-    fontFamily: 'CrimsonText_600SemiBold',
+    fontFamily: 'CrimsonText_700Bold',
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -286,8 +286,8 @@ const styles = StyleSheet.create({
   },
   saveBtn: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
+    paddingVertical: 16,
+    borderRadius: 14,
     backgroundColor: Colors.primary,
     alignItems: 'center',
   },

@@ -99,7 +99,7 @@ function LibraryArticleCard({ article, onSave, onFeedback, index }: {
             style={[styles.feedbackBtn, article.feedback === 'up' && styles.feedbackBtnActive]}
           >
             <ThumbsUp
-              size={15}
+              size={16}
               color={article.feedback === 'up' ? Colors.primary : 'rgba(0,0,0,0.3)'}
               fill={article.feedback === 'up' ? Colors.primary : 'transparent'}
             />
@@ -113,7 +113,7 @@ function LibraryArticleCard({ article, onSave, onFeedback, index }: {
             style={[styles.feedbackBtn, article.feedback === 'down' && styles.feedbackBtnActive]}
           >
             <ThumbsDown
-              size={15}
+              size={16}
               color={article.feedback === 'down' ? '#E05555' : 'rgba(0,0,0,0.3)'}
               fill={article.feedback === 'down' ? '#E05555' : 'transparent'}
             />
@@ -245,10 +245,10 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
   },
   topBarTitle: {
-    fontSize: 18,
-    fontWeight: '600' as const,
+    fontSize: 22,
+    fontWeight: '700' as const,
     color: Colors.text,
-    fontFamily: 'CrimsonText_600SemiBold',
+    fontFamily: 'CrimsonText_700Bold',
   },
   searchContainer: {
     flexDirection: 'row',
@@ -329,11 +329,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   articleTitle: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: '700' as const,
     color: Colors.text,
     marginBottom: 12,
-    lineHeight: 30,
+    lineHeight: 24,
     letterSpacing: -0.3,
     fontFamily: 'CrimsonText_700Bold',
   },
@@ -343,15 +343,15 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   feedbackBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: 'rgba(255,255,255,0.6)',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.7)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   feedbackBtnActive: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(0,0,0,0.08)',
   },
   cardBottom: {
     flexDirection: 'row',
@@ -361,10 +361,10 @@ const styles = StyleSheet.create({
   },
 
   arrowButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.7)',
     justifyContent: 'center',
     alignItems: 'center',
   },

@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft, ChevronRight, Settings } from 'lucide-react-native';
 import { Image } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import Colors from '@/constants/colors';
+import Colors, { CARD_COLORS } from '@/constants/colors';
 import { useApp } from '@/providers/AppProvider';
 import { ArticleInsight } from '@/types';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -23,17 +23,6 @@ const CARD_GAP = 12;
 const HORIZONTAL_PAD = 20;
 const LEARNING_CARD_WIDTH = SCREEN_WIDTH * 0.6;
 
-const SUMMARY_BORDER_COLORS = [
-  ['#E8B4F8', '#F5C6D0', '#FDDCB5', '#F5EDE3'] as const,
-  ['#F5C6D0', '#FDDCB5', '#F5EDE3', '#E8B4F8'] as const,
-  ['#FDDCB5', '#E8B4F8', '#F5C6D0', '#F5EDE3'] as const,
-] as const;
-
-const LEARNING_BORDER_COLORS = [
-  ['#F5E6C8', '#FDDCB5', '#F5EDE3', '#F5E6C8'] as const,
-  ['#FDDCB5', '#F5E6C8', '#F5EDE3', '#FDDCB5'] as const,
-  ['#F5EDE3', '#FDDCB5', '#F5E6C8', '#F5EDE3'] as const,
-] as const;
 
 function getDateKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -54,9 +43,6 @@ function formatMonthYear(date: Date): string {
 function ArticleInsightBlock({ insight, index }: { insight: ArticleInsight; index: number }) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
-  const gradientIdx = insight.colorIndex != null ? insight.colorIndex % SUMMARY_BORDER_COLORS.length : index % SUMMARY_BORDER_COLORS.length;
-  const summaryBorderGradient = SUMMARY_BORDER_COLORS[gradientIdx];
-  const learningBorderGradient = LEARNING_BORDER_COLORS[gradientIdx];
 
   useEffect(() => {
     Animated.parallel([
@@ -92,7 +78,7 @@ function ArticleInsightBlock({ insight, index }: { insight: ArticleInsight; inde
       </View>
 
       <LinearGradient
-        colors={[...summaryBorderGradient]}
+        colors={[...CARD_COLORS]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.summaryBorderGradient}
@@ -120,7 +106,7 @@ function ArticleInsightBlock({ insight, index }: { insight: ArticleInsight; inde
             {insight.keyTakeaways.map((item, tIdx) => (
               <LinearGradient
                 key={`${insight.id}_takeaway_${tIdx}`}
-                colors={[...learningBorderGradient]}
+                colors={[...CARD_COLORS]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.learningCardBorder}
@@ -352,10 +338,10 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
   },
   topBarTitle: {
-    fontSize: 18,
-    fontWeight: '600' as const,
+    fontSize: 22,
+    fontWeight: '700' as const,
     color: Colors.text,
-    fontFamily: 'CrimsonText_600SemiBold',
+    fontFamily: 'CrimsonText_700Bold',
   },
   weekNavRow: {
     flexDirection: 'row',

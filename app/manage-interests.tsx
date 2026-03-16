@@ -330,10 +330,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600' as const,
+    fontSize: 22,
+    fontWeight: '700' as const,
     color: Colors.text,
-    fontFamily: 'CrimsonText_600SemiBold',
+    fontFamily: 'CrimsonText_700Bold',
   },
   saveButton: {
     backgroundColor: Colors.primary,
@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   selectedTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '600' as const,
     color: Colors.text,
   },
@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 16,
     color: Colors.text,
     paddingVertical: 14,
   },
@@ -470,7 +470,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.border,
   },
   minHint: {
-    fontSize: 13,
+    fontSize: 12,
     color: Colors.textSecondary,
     textAlign: 'center',
     marginTop: 10,

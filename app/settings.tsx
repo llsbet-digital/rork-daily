@@ -301,10 +301,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600' as const,
+    fontSize: 22,
+    fontWeight: '700' as const,
     color: Colors.text,
-    fontFamily: 'CrimsonText_600SemiBold',
+    fontFamily: 'CrimsonText_700Bold',
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -341,9 +341,9 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   sectionLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600' as const,
-    color: Colors.textSecondary,
+    color: Colors.sectionLabel,
     letterSpacing: 1.5,
     marginBottom: 8,
     marginLeft: 4,
@@ -353,6 +353,11 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     marginBottom: 24,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
   },
   settingRow: {
     flexDirection: 'row',

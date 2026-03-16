@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: '700' as const,
     color: Colors.text,
     fontFamily: 'CrimsonText_700Bold',
@@ -517,8 +517,8 @@ const styles = StyleSheet.create({
   },
   upgradeButton: {
     backgroundColor: Colors.primary,
-    borderRadius: 16,
-    paddingVertical: 18,
+    borderRadius: 14,
+    paddingVertical: 16,
     paddingHorizontal: 32,
     width: '100%',
     alignItems: 'center',
