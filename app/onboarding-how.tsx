@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
   stepNumber: {
     fontSize: 20,
     fontWeight: '700' as const,
-    color: Colors.primary,
+    color: '#1A1A1A',
     minWidth: 36,
   },
   stepContent: {
@@ -142,9 +142,11 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingVertical: 16,
     paddingHorizontal: 40,
+    borderWidth: 1.5,
+    borderColor: '#1A1A1A',
   },
   nextButtonText: {
-    color: Colors.white,
+    color: '#1A1A1A',
     fontSize: 16,
     fontWeight: '600' as const,
   },

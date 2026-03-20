@@ -141,7 +141,7 @@ export default function PremiumScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <Animated.View style={[styles.content, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
           <View style={styles.iconCircle}>
-            <Crown size={48} color={Colors.primary} />
+            <Crown size={48} color={'#1A1A1A'} />
           </View>
 
           <Text style={styles.title}>{'Unlock Your\nFull Potential'}</Text>
@@ -167,7 +167,7 @@ export default function PremiumScreen() {
                 <Text style={styles.featureText}>{row.feature}</Text>
                 <Text style={styles.freeValue}>{row.free}</Text>
                 <View style={styles.premiumValueWrap}>
-                  <Check size={14} color={Colors.primary} />
+                  <Check size={14} color={'#1A1A1A'} />
                   <Text style={styles.premiumValue}>{row.premium}</Text>
                 </View>
               </View>
@@ -253,7 +253,7 @@ export default function PremiumScreen() {
 
               {offeringsQuery.isLoading ? (
                 <View style={styles.loadingWrap}>
-                  <ActivityIndicator size="small" color={Colors.primary} />
+                  <ActivityIndicator size="small" color={'#1A1A1A'} />
                   <Text style={styles.loadingText}>Loading plans...</Text>
                 </View>
               ) : offeringsQuery.isError ? (
@@ -264,7 +264,7 @@ export default function PremiumScreen() {
                     onPress={() => offeringsQuery.refetch()}
                     activeOpacity={0.7}
                   >
-                    <RotateCcw size={14} color={Colors.primary} />
+                    <RotateCcw size={14} color={Colors.textSecondary} />
                     <Text style={styles.retryText}>Tap to retry</Text>
                   </TouchableOpacity>
                 </View>
@@ -276,7 +276,7 @@ export default function PremiumScreen() {
                   disabled={isProcessing || !activePackage}
                 >
                   {isProcessing ? (
-                    <ActivityIndicator size="small" color={Colors.white} />
+                    <ActivityIndicator size="small" color={'#1A1A1A'} />
                   ) : (
                     <Text style={styles.upgradeButtonText}>
                       Subscribe {selectedPlan === 'yearly' ? 'Yearly' : 'Monthly'}
@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: '#F0F0EC',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
@@ -400,8 +400,8 @@ const styles = StyleSheet.create({
     width: 80,
     textAlign: 'center',
     fontSize: 14,
-    fontWeight: '600' as const,
-    color: Colors.primary,
+    fontWeight: '700' as const,
+    color: '#1A1A1A',
   },
   tableRow: {
     flexDirection: 'row',
@@ -433,7 +433,7 @@ const styles = StyleSheet.create({
   premiumValue: {
     fontSize: 15,
     fontWeight: '600' as const,
-    color: Colors.primary,
+    color: '#1A1A1A',
   },
   planSelector: {
     width: '100%',
@@ -451,14 +451,14 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   planCardSelected: {
-    borderColor: Colors.primary,
-    backgroundColor: '#FFF5EE',
+    borderColor: '#1A1A1A',
+    backgroundColor: '#F5F5F2',
   },
   bestValueBadge: {
     position: 'absolute',
     top: -10,
     right: 14,
-    backgroundColor: Colors.primary,
+    backgroundColor: '#1A1A1A',
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -483,13 +483,13 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   planRadioSelected: {
-    borderColor: Colors.primary,
+    borderColor: '#1A1A1A',
   },
   planRadioInner: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: Colors.primary,
+    backgroundColor: '#1A1A1A',
   },
   planInfo: {
     flex: 1,
@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   planNameSelected: {
-    color: Colors.primary,
+    color: '#1A1A1A',
   },
   planPriceDetail: {
     fontSize: 13,
@@ -513,7 +513,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   planPriceSelected: {
-    color: Colors.primary,
+    color: '#1A1A1A',
   },
   upgradeButton: {
     backgroundColor: Colors.primary,
@@ -522,12 +522,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     width: '100%',
     alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#1A1A1A',
   },
   upgradeButtonDisabled: {
     opacity: 0.6,
   },
   upgradeButtonText: {
-    color: Colors.white,
+    color: '#1A1A1A',
     fontSize: 17,
     fontWeight: '600' as const,
   },
@@ -571,12 +573,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 8,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: '#F0F0EC',
   },
   retryText: {
     fontSize: 14,
     fontWeight: '600' as const,
-    color: Colors.primary,
+    color: '#1A1A1A',
   },
   activeContainer: {
     marginBottom: 16,

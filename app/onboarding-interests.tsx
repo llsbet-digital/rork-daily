@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
   selectedCountActive: {
-    color: Colors.primary,
+    color: '#1A1A1A',
     fontWeight: '600' as const,
   },
   selectedTags: {
@@ -365,6 +365,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#1A1A1A',
   },
   addButtonDisabled: {
     backgroundColor: Colors.border,

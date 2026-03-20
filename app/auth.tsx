@@ -299,12 +299,14 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 8,
+    borderWidth: 1.5,
+    borderColor: '#1A1A1A',
   },
   authButtonDisabled: {
     opacity: 0.7,
   },
   authButtonText: {
-    color: Colors.white,
+    color: '#1A1A1A',
     fontSize: 17,
     fontWeight: '600' as const,
   },
@@ -319,7 +321,7 @@ const styles = StyleSheet.create({
   },
   switchLink: {
     fontSize: 15,
-    color: Colors.primary,
+    color: '#1A1A1A',
     fontWeight: '600' as const,
   },
 });

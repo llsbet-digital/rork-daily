@@ -100,9 +100,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     width: '100%',
     alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#1A1A1A',
   },
   primaryButtonText: {
-    color: Colors.white,
+    color: '#1A1A1A',
     fontSize: 17,
     fontWeight: '600' as const,
   },

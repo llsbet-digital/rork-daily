@@ -68,7 +68,7 @@ function LibraryArticleCard({ article, onSave, onFeedback, index }: {
           >
             <BookmarkMinus
               size={18}
-              color={Colors.primary}
+              color={'#1A1A1A'}
             />
           </TouchableOpacity>
         </View>
@@ -100,8 +100,8 @@ function LibraryArticleCard({ article, onSave, onFeedback, index }: {
           >
             <ThumbsUp
               size={16}
-              color={article.feedback === 'up' ? Colors.primary : 'rgba(0,0,0,0.3)'}
-              fill={article.feedback === 'up' ? Colors.primary : 'transparent'}
+              color={article.feedback === 'up' ? '#1A1A1A' : 'rgba(0,0,0,0.3)'}
+              fill={article.feedback === 'up' ? '#1A1A1A' : 'transparent'}
             />
           </TouchableOpacity>
           <TouchableOpacity

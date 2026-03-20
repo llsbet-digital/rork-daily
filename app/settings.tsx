@@ -106,7 +106,7 @@ export default function SettingsScreen() {
       >
         <View style={styles.profileCard}>
           <View style={styles.profileAvatar}>
-            <User size={28} color={Colors.primary} />
+            <User size={28} color={Colors.textSecondary} />
           </View>
           <View style={styles.profileInfo}>
             {editingName ? (
@@ -126,7 +126,7 @@ export default function SettingsScreen() {
                   disabled={savingName || !nameInput.trim()}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
-                  <Check size={18} color={Colors.primary} />
+                  <Check size={18} color={'#1A1A1A'} />
                 </TouchableOpacity>
               </View>
             ) : (
@@ -180,7 +180,7 @@ export default function SettingsScreen() {
                 activeOpacity={0.7}
               >
                 <View style={styles.settingLeft}>
-                  <Crown size={20} color={Colors.primary} />
+                  <Crown size={20} color={Colors.textSecondary} />
                   <Text style={[styles.settingText, styles.premiumText]}>Upgrade to Premium</Text>
                 </View>
                 <ChevronRight size={18} color={Colors.textMuted} />
@@ -197,7 +197,7 @@ export default function SettingsScreen() {
             activeOpacity={0.7}
           >
             <View style={styles.settingLeft}>
-              <Tag size={20} color={Colors.primary} />
+              <Tag size={20} color={Colors.textSecondary} />
               <Text style={styles.settingText}>Manage Interests</Text>
             </View>
             <View style={styles.settingRight}>
@@ -212,7 +212,7 @@ export default function SettingsScreen() {
             activeOpacity={0.7}
           >
             <View style={styles.settingLeft}>
-              <Rss size={20} color={Colors.primary} />
+              <Rss size={20} color={Colors.textSecondary} />
               <Text style={styles.settingText}>My Sources</Text>
             </View>
             <View style={styles.settingRight}>
@@ -381,7 +381,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   premiumText: {
-    color: Colors.primary,
+    color: '#1A1A1A',
     fontWeight: '600' as const,
   },
   settingValue: {
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: Colors.text,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.primary,
+    borderBottomColor: '#1A1A1A',
     paddingVertical: 2,
   },
 });

@@ -110,7 +110,7 @@ export default function OnboardingSources() {
               disabled={!canAdd}
               activeOpacity={0.7}
             >
-              <Plus size={18} color={Colors.white} />
+              <Plus size={18} color={'#1A1A1A'} />
             </TouchableOpacity>
           </View>
         </View>
@@ -118,14 +118,14 @@ export default function OnboardingSources() {
         <ScrollView style={styles.sourcesList} showsVerticalScrollIndicator={false}>
           {sources.length === 0 ? (
             <View style={styles.emptyState}>
-              <Link size={36} color={Colors.primaryMuted} />
+              <Link size={36} color={Colors.textMuted} />
               <Text style={styles.emptyText}>Add the sites you want to read from</Text>
             </View>
           ) : (
             sources.map((source, index) => (
               <View key={index} style={styles.sourceRow}>
                 <View style={styles.sourceIcon}>
-                  <Link size={14} color={Colors.primary} />
+                  <Link size={14} color={Colors.textSecondary} />
                 </View>
                 <View style={styles.sourceInfo}>
                   <Text style={styles.sourceName}>{source.name}</Text>
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
   countLabelActive: {
-    color: Colors.primary,
+    color: '#1A1A1A',
     fontWeight: '600' as const,
   },
   title: {
@@ -229,9 +229,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     flexShrink: 0,
+    borderWidth: 1.5,
+    borderColor: '#1A1A1A',
   },
   addButtonDisabled: {
-    backgroundColor: Colors.primaryMuted,
+    backgroundColor: '#E0E0DC',
+    borderColor: Colors.border,
   },
   sourcesList: {
     flex: 1,
@@ -260,7 +263,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 8,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: '#F0F0EC',
     justifyContent: 'center',
     alignItems: 'center',
     flexShrink: 0,
@@ -293,12 +296,14 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingVertical: 16,
     paddingHorizontal: 28,
+    borderWidth: 1.5,
+    borderColor: '#1A1A1A',
   },
   continueButtonMuted: {
     backgroundColor: '#D5D5D5',
   },
   continueButtonText: {
-    color: Colors.white,
+    color: '#1A1A1A',
     fontSize: 16,
     fontWeight: '600' as const,
   },

@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 2.5,
-    backgroundColor: Colors.primary,
+    backgroundColor: '#1A1A1A',
     marginTop: 2,
   },
   scrollContent: {

@@ -91,7 +91,7 @@ export default function ManageResourcesScreen() {
             }}
             activeOpacity={0.7}
           >
-            <Plus size={22} color={Colors.primary} />
+            <Plus size={22} color={'#1A1A1A'} />
           </TouchableOpacity>
         </View>
 
@@ -174,7 +174,7 @@ export default function ManageResourcesScreen() {
                       {index > 0 && <View style={styles.divider} />}
                       <View style={styles.resourceRow}>
                         <View style={styles.resourceIcon}>
-                          <Link size={16} color={Colors.primary} />
+                          <Link size={16} color={Colors.textSecondary} />
                         </View>
                         <View style={styles.resourceInfo}>
                           <Text style={styles.resourceName}>{resource.name}</Text>
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: '#F0F0EC',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -290,13 +290,15 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: Colors.primary,
     alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#1A1A1A',
   },
   saveBtnDisabled: {
     opacity: 0.6,
   },
   saveBtnText: {
     fontSize: 15,
-    color: Colors.white,
+    color: '#1A1A1A',
     fontWeight: '600' as const,
   },
   sectionLabel: {
@@ -323,7 +325,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: '#F0F0EC',
     justifyContent: 'center',
     alignItems: 'center',
     flexShrink: 0,

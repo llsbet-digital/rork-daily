@@ -89,8 +89,9 @@ function ArticleCard({ article, onSave, onRead, onFeedback, onGenerateInsight, i
           >
             <Bookmark
               size={18}
-              color={article.isSaved ? Colors.primary : 'rgba(0,0,0,0.35)'}
+              color={article.isSaved ? '#1A1A1A' : 'rgba(0,0,0,0.35)'}
               fill={article.isSaved ? Colors.primary : 'transparent'}
+              strokeWidth={article.isSaved ? 2 : 1.5}
             />
           </TouchableOpacity>
         </View>
@@ -538,9 +539,11 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingVertical: 16,
     paddingHorizontal: 32,
+    borderWidth: 1.5,
+    borderColor: '#1A1A1A',
   },
   addSourcesButtonText: {
-    color: Colors.white,
+    color: '#1A1A1A',
     fontSize: 16,
     fontWeight: '600' as const,
   },
