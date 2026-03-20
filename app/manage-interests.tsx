@@ -108,7 +108,7 @@ function ScrollingRow({ items, direction, selectedInterests, onToggle }: {
                 {item}
               </Text>
               {isSelected && (
-                <Check size={14} color={Colors.white} strokeWidth={3} />
+                <Check size={14} color={Colors.dark} strokeWidth={3} />
               )}
             </TouchableOpacity>
           );
@@ -140,7 +140,7 @@ const rowStyles = StyleSheet.create({
   },
   badgeSelected: {
     backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    borderColor: Colors.dark,
   },
   badgeText: {
     fontSize: 14,
@@ -148,7 +148,7 @@ const rowStyles = StyleSheet.create({
     color: '#1A1A1A',
   },
   badgeTextSelected: {
-    color: Colors.white,
+    color: Colors.dark,
   },
 });
 
