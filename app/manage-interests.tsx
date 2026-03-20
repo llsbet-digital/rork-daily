@@ -456,17 +456,20 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   saveFullButton: {
-    backgroundColor: Colors.text,
+    backgroundColor: Colors.primary,
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 14,
+    borderWidth: 1.5,
+    borderColor: '#1A1A1A',
   },
   saveFullButtonDisabled: {
     backgroundColor: Colors.border,
+    borderColor: Colors.border,
   },
   saveFullButtonText: {
-    color: Colors.white,
+    color: '#1A1A1A',
     fontSize: 16,
     fontWeight: '600' as const,
   },

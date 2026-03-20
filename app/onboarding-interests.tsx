@@ -372,17 +372,20 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.border,
   },
   continueButton: {
-    backgroundColor: Colors.text,
+    backgroundColor: Colors.primary,
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',
     marginBottom: 10,
+    borderWidth: 1.5,
+    borderColor: '#1A1A1A',
   },
   continueButtonDisabled: {
     backgroundColor: Colors.border,
+    borderColor: Colors.border,
   },
   continueButtonText: {
-    color: Colors.white,
+    color: '#1A1A1A',
     fontSize: 16,
     fontWeight: '600' as const,
   },
