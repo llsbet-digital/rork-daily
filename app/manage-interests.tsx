@@ -280,7 +280,7 @@ export default function ManageInterestsScreen() {
             activeOpacity={0.7}
             disabled={!inputValue.trim()}
           >
-            <Plus size={18} color={inputValue.trim() ? Colors.white : Colors.textMuted} />
+            <Plus size={18} color={inputValue.trim() ? '#1A1A1A' : Colors.textMuted} />
           </TouchableOpacity>
         </View>
 
