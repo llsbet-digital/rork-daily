@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Sparkles, Bookmark, ThumbsUp, ThumbsDown, Settings } from 'lucide-react-native';
+import { Sparkles, Bookmark, ThumbsUp, ThumbsDown } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import * as WebBrowser from 'expo-web-browser';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -260,12 +260,7 @@ export default function TodayScreen() {
             </View>
           </TouchableOpacity>
           <Text style={styles.topBarTitle}>Today</Text>
-          <TouchableOpacity
-            onPress={() => router.push('/settings' as any)}
-            activeOpacity={0.7}
-          >
-            <Settings size={22} color={Colors.text} />
-          </TouchableOpacity>
+          <View style={{ width: 22 }} />
         </View>
 
 
