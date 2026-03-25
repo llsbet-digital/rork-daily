@@ -76,43 +76,39 @@ async function searchArticlesWithOpenAI(interests: string[], count: number, reso
     throw new Error('OpenAI API key not configured');
   }
 
+  if (!resources || resources.length === 0) {
+    console.log('[Articles] No user sources configured — returning empty');
+    return [];
+  }
+
   const today = getTodayDateString();
   const topicSlots = buildInterestDistribution(interests, count, preferences);
-  const topicBreakdown = topicSlots.map((t, i) => `Article ${i + 1}: about "${t}"`).join('\n');
   const prefSummary = buildPreferenceSummary(interests, preferences);
 
-  const hasResources = resources && resources.length > 0;
+  const allowedDomains = resources.map(r => {
+    try {
+      const url = r.url.startsWith('http') ? r.url : `https://${r.url}`;
+      return new URL(url).hostname.replace(/^www\./, '');
+    } catch {
+      return r.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0];
+    }
+  });
 
-  // Extract clean domain names from resource URLs for search and filtering
-  const allowedDomains = hasResources
-    ? resources.map(r => {
-        try {
-          const url = r.url.startsWith('http') ? r.url : `https://${r.url}`;
-          return new URL(url).hostname.replace(/^www\./, '');
-        } catch {
-          return r.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0];
-        }
-      })
-    : [];
+  const searchInstructions = topicSlots.map((topic, i) => {
+    const domain = allowedDomains[i % allowedDomains.length];
+    return `Article ${i + 1}: Search "site:${domain} ${topic}" — return an article from ${domain}`;
+  }).join('\n');
 
-  let prompt: string;
-
-  if (hasResources) {
-    // Build per-article search instructions using site: queries
-    const searchInstructions = topicSlots.map((topic, i) => {
-      const domain = allowedDomains[i % allowedDomains.length];
-      return `Article ${i + 1}: Search "site:${domain} ${topic}" — return an article from ${domain}`;
-    }).join('\n');
-
-    prompt = `You are a search assistant. For each article below, run the specified web search and return the result.
+  const prompt = `You are a search assistant. For each article below, run the specified web search and return the result.
 
 ${searchInstructions}
 ${prefSummary ? `\n${prefSummary}\n` : ''}
 STRICT RULES:
 - Every article URL MUST be from one of these domains: ${allowedDomains.join(', ')}
 - If a search returns no result from the correct domain, try another keyword variation on the same domain.
+- If you absolutely cannot find an article on the specified domain for a topic, SKIP that article entirely — do NOT substitute with a different domain.
 - NEVER return a URL from any domain not listed above.
-- Return exactly ${count} articles.
+- It is acceptable to return fewer than ${count} articles if some topics have no coverage on the specified domains.
 
 For each article provide:
 - title: the exact article title
@@ -125,30 +121,6 @@ For each article provide:
 
 Respond with ONLY valid JSON, no markdown:
 {"articles":[{"title":"...","url":"https://...","source":"...","summary":"...","content":"...","category":"TOPIC","readTime":5}]}`;
-  } else {
-    prompt = `Find exactly ${count} real, recent FREE news articles from the internet. Each article MUST be about the specific topic assigned below:
-
-${topicBreakdown}
-${prefSummary ? `\n${prefSummary}\n` : ''}
-IMPORTANT RULES:
-- You MUST return exactly ${count} articles, no more, no less.
-- Each article must match its assigned topic above.
-- Only include articles that are completely free to read — no paywalls, no subscription requirements.
-- Prefer free sources like BBC, Reuters, The Verge, TechCrunch, Ars Technica, The Guardian, AP News, NPR, Wired (free articles), etc.
-- Avoid WSJ, Financial Times, NYT, The Athletic, Bloomberg (paywalled).
-
-For each article provide:
-- title: the exact article title
-- url: the real, working URL to the article
-- source: the publication name
-- summary: 1-2 sentence summary
-- content: detailed article body (4-8 paragraphs), well-written with analysis and insights. Use line breaks between paragraphs.
-- category: the topic in UPPERCASE
-- readTime: estimated reading time in minutes (3-15)
-
-Respond with ONLY valid JSON, no markdown:
-{"articles":[{"title":"...","url":"https://...","source":"...","summary":"...","content":"...","category":"TOPIC","readTime":5}]}`;
-  }
 
   console.log('[Articles] Calling OpenAI Responses API with web search...');
 
@@ -212,7 +184,7 @@ Respond with ONLY valid JSON, no markdown:
 
   try {
     data = JSON.parse(cleanedText);
-  } catch (_e) {
+  } catch {
     console.log('[Articles] Direct parse failed, trying regex extraction');
     const jsonMatch = cleanedText.match(/\{[\s\S]*"articles"\s*:\s*\[[\s\S]*\]\s*\}/);
     if (!jsonMatch) {
@@ -308,19 +280,8 @@ export async function fetchDailyArticles(interests: string[], count: number, res
     console.log('[Articles] OpenAI fetch failed, using fallback:', error);
   }
 
-  // Only use generic fallback when no user resources are set — never mix fallback with user sources
-  if (articles.length < count && (!resources || resources.length === 0)) {
-    console.log('[Articles] Got', articles.length, 'articles but need', count, '- generating fallback articles');
-    const existingIds = new Set(articles.map(a => a.id));
-    const fallback = generateFallbackArticles(interests, count - articles.length, articles.length);
-    for (const fb of fallback) {
-      if (!existingIds.has(fb.id)) {
-        articles.push(fb);
-      }
-    }
-    console.log('[Articles] Total after fallback:', articles.length);
-  } else if (articles.length < count) {
-    console.log('[Articles] Got', articles.length, '/', count, 'articles from user sources — no fallback applied');
+  if (articles.length < count) {
+    console.log('[Articles] Got', articles.length, '/', count, 'articles from user sources — no fallback applied, only showing what was found');
   }
 
   if (articles.length > 0) {
@@ -352,53 +313,6 @@ export async function fetchAdditionalArticles(interests: string[], additionalCou
   }
 }
 
-function generateFallbackArticles(interests: string[], count: number, startIndex: number): Article[] {
-  const today = getTodayDateString();
-  const sources = ['BBC News', 'Reuters', 'The Guardian', 'AP News', 'NPR', 'The Verge', 'TechCrunch', 'Ars Technica'];
-  const unsplashImages = [
-    'https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?w=400&h=300&fit=crop',
-    'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=300&fit=crop',
-    'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&h=300&fit=crop',
-    'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=400&h=300&fit=crop',
-    'https://images.unsplash.com/photo-1553877522-43269d4ea984?w=400&h=300&fit=crop',
-  ];
-  const titleTemplates = [
-    'Breaking Trends in {topic}',
-    'How {topic} Is Reshaping the Industry in 2026',
-    'The Future of {topic}: What Professionals Need to Know',
-    'Deep Dive: {topic} Developments This Week',
-    '{topic} Strategies That Top Performers Use',
-  ];
-  const summaryTemplates = [
-    'The latest developments and emerging patterns in {topic} that professionals need to understand to stay competitive.',
-    'A deep dive into the latest {topic} developments transforming professional workflows and industry standards.',
-    'Expert analysis on how {topic} trends are creating new opportunities for forward-thinking professionals.',
-    'Comprehensive overview of {topic} innovations that are redefining best practices across industries.',
-    'Key insights from industry leaders on leveraging {topic} for maximum professional impact.',
-  ];
-
-  const articles: Article[] = [];
-  for (let i = 0; i < count; i++) {
-    const idx = startIndex + i;
-    const interest = interests[idx % interests.length];
-    articles.push({
-      id: `article-${today}-${idx}`,
-      title: titleTemplates[idx % titleTemplates.length].replace('{topic}', interest),
-      summary: summaryTemplates[idx % summaryTemplates.length].replace('{topic}', interest),
-      content: `The landscape of ${interest} is undergoing a profound transformation that few could have predicted even a year ago. Industry leaders and analysts are pointing to a convergence of technological advances, shifting consumer expectations, and regulatory changes that together are reshaping how professionals approach ${interest}.\n\nAt the heart of this shift is a growing recognition that traditional methods are no longer sufficient. Companies that once dominated the ${interest} space are being forced to rethink their strategies from the ground up, while nimble startups are seizing the opportunity to introduce innovative approaches.\n\nExperts emphasize that the pace of change shows no signs of slowing. What we're seeing is not just incremental improvement — it's a fundamental rethinking of how ${interest} fits into the broader ecosystem.\n\nFor professionals looking to stay ahead, the message is clear: continuous learning and adaptability are no longer optional.`,
-      category: interest.toUpperCase(),
-      source: sources[idx % sources.length],
-      readTime: Math.floor(Math.random() * 8) + 3,
-      publishedAt: 'Today',
-      imageUrl: unsplashImages[idx % unsplashImages.length],
-      url: '#',
-      isRead: false,
-      feedback: null,
-      isSaved: false,
-    });
-  }
-  return articles;
-}
 
 export async function clearArticleCache(): Promise<void> {
   await AsyncStorage.removeItem(DAILY_ARTICLES_KEY);
