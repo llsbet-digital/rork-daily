@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronLeft, ChevronRight, Settings } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { Image } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import Colors, { CARD_COLORS } from '@/constants/colors';
@@ -230,12 +230,7 @@ export default function InsightsScreen() {
             </View>
           </TouchableOpacity>
           <Text style={styles.topBarTitle}>Insights</Text>
-          <TouchableOpacity
-            onPress={() => router.push('/settings' as any)}
-            activeOpacity={0.7}
-          >
-            <Settings size={22} color={Colors.text} />
-          </TouchableOpacity>
+          <View style={{ width: 38 }} />
         </View>
 
         <View style={styles.weekNavRow}>

@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Search, BookmarkMinus, ChevronRight, ThumbsUp, ThumbsDown, Settings } from 'lucide-react-native';
+import { Search, BookmarkMinus, ChevronRight, ThumbsUp, ThumbsDown } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import * as WebBrowser from 'expo-web-browser';
 import { Image } from 'react-native';
@@ -165,12 +165,7 @@ export default function LibraryScreen() {
             </View>
           </TouchableOpacity>
           <Text style={styles.topBarTitle}>Library</Text>
-          <TouchableOpacity
-            onPress={() => router.push('/settings' as any)}
-            activeOpacity={0.7}
-          >
-            <Settings size={22} color={Colors.text} />
-          </TouchableOpacity>
+          <View style={{ width: 38 }} />
         </View>
 
         <View style={styles.searchContainer}>
