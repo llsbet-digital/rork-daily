@@ -94,31 +94,33 @@ async function searchArticlesWithOpenAI(interests: string[], count: number, reso
     }
   });
 
-  const searchInstructions = topicSlots.map((topic, i) => {
-    const domain = allowedDomains[i % allowedDomains.length];
-    return `Article ${i + 1}: Search "site:${domain} ${topic}" — return an article from ${domain}`;
-  }).join('\n');
+  const domainList = allowedDomains.join(', ');
+  const interestList = interests.join(', ');
 
-  const prompt = `You are a search assistant. For each article below, run the specified web search and return the result.
+  const prompt = `You are a search assistant. Your job is to find EXACTLY ${count} real articles that exist on specific websites.
 
-${searchInstructions}
+ALLOWED SOURCES (domains): ${domainList}
+USER'S TOPICS OF INTEREST: ${interestList}
 ${prefSummary ? `\n${prefSummary}\n` : ''}
-STRICT RULES:
-- You MUST return EXACTLY ${count} articles. This is critical.
-- Every article URL MUST be from one of these domains: ${allowedDomains.join(', ')}
-- If a search returns no result from the correct domain for a topic, try another keyword variation on the SAME domain.
-- If a topic has no coverage, pick a DIFFERENT topic that IS covered on the allowed domains and return an article for it instead.
-- Cycle through all allowed domains to maximise variety.
-- NEVER return a URL from any domain not listed above.
-- NEVER return fewer than ${count} articles — always find alternatives on the allowed domains to fill the count.
+
+INSTRUCTIONS:
+1. For each allowed domain, search for articles matching the user's topics of interest.
+2. ONLY return articles that actually exist on the allowed domains. Do NOT use any other websites.
+3. If a topic is NOT covered by any of the allowed sources, DO NOT search elsewhere. Instead, find MORE articles on topics that ARE covered by the allowed sources.
+4. For example: if the user has interests [Tech, Sports, Politics] but the only source is techcrunch.com which only covers Tech — return ${count} Tech articles from techcrunch.com. Do NOT look for Sports or Politics on other sites.
+5. Spread articles across all allowed domains when possible, but it is perfectly fine to have multiple articles from the same domain if there are few sources.
+6. You MUST return EXACTLY ${count} articles. Fill the count by finding additional articles on covered topics from the allowed domains.
+7. Every article URL MUST start with https:// and belong to one of: ${domainList}
+8. NEVER fabricate URLs. Only return articles you found via web search that actually exist.
+9. NEVER return a URL from any domain not listed above.
 
 For each article provide:
-- title: the exact article title
-- url: the full URL (MUST be on one of: ${allowedDomains.join(', ')})
+- title: the exact article title as it appears on the site
+- url: the full URL (MUST be on one of: ${domainList})
 - source: the site name
 - summary: 1-2 sentence summary
 - content: detailed article body (4-8 paragraphs), well-written with analysis and insights. Use line breaks between paragraphs.
-- category: the topic in UPPERCASE
+- category: the topic in UPPERCASE (use the actual topic the article covers)
 - readTime: estimated reading time in minutes (3-15)
 
 Respond with ONLY valid JSON, no markdown:
