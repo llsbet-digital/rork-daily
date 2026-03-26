@@ -3,6 +3,7 @@ import { Article, NewsResource, UserPreferences } from '@/types';
 
 const DAILY_ARTICLES_KEY = 'daily_articles_cache';
 const DAILY_DATE_KEY = 'daily_articles_date';
+const DAILY_RESOURCES_KEY = 'daily_articles_resources_hash';
 
 function getTodayDateString(): string {
   const now = new Date();
@@ -257,20 +258,60 @@ Respond with ONLY valid JSON, no markdown:
   return articles;
 }
 
+function getResourcesHash(resources?: NewsResource[]): string {
+  if (!resources || resources.length === 0) return 'none';
+  return resources.map(r => r.url).sort().join('|');
+}
+
+function getAllowedDomains(resources?: NewsResource[]): string[] {
+  if (!resources || resources.length === 0) return [];
+  return resources.map(r => {
+    try {
+      const url = r.url.startsWith('http') ? r.url : `https://${r.url}`;
+      return new URL(url).hostname.replace(/^www\./, '');
+    } catch {
+      return r.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0];
+    }
+  });
+}
+
+function filterArticlesByDomain(articles: Article[], resources?: NewsResource[]): Article[] {
+  const domains = getAllowedDomains(resources);
+  if (domains.length === 0) return [];
+  return articles.filter(a => {
+    if (!a.url || !a.url.startsWith('http')) return false;
+    try {
+      const articleHost = new URL(a.url).hostname.replace(/^www\./, '');
+      const allowed = domains.some(d => articleHost === d || articleHost.endsWith(`.${d}`));
+      if (!allowed) {
+        console.log('[Articles] Domain filter removed:', articleHost, a.url);
+      }
+      return allowed;
+    } catch {
+      return false;
+    }
+  });
+}
+
 export async function fetchDailyArticles(interests: string[], count: number, resources?: NewsResource[], preferences?: UserPreferences): Promise<Article[]> {
   const today = getTodayDateString();
+  const currentHash = getResourcesHash(resources);
 
   try {
     const cachedDate = await AsyncStorage.getItem(DAILY_DATE_KEY);
     const cachedArticles = await AsyncStorage.getItem(DAILY_ARTICLES_KEY);
+    const cachedHash = await AsyncStorage.getItem(DAILY_RESOURCES_KEY);
 
-    if (cachedDate === today && cachedArticles) {
+    if (cachedDate === today && cachedArticles && cachedHash === currentHash) {
       const parsed = JSON.parse(cachedArticles) as Article[];
-      if (parsed.length >= count) {
-        console.log('[Articles] Returning cached articles for', today, '— count:', parsed.length);
-        return parsed.slice(0, count);
+      const validArticles = filterArticlesByDomain(parsed, resources);
+      if (validArticles.length >= count) {
+        console.log('[Articles] Returning cached articles for', today, '— count:', validArticles.length);
+        return validArticles.slice(0, count);
       }
-      console.log('[Articles] Cache has', parsed.length, 'but need', count, '— re-fetching');
+      console.log('[Articles] Cache has', validArticles.length, 'valid articles but need', count, '— re-fetching');
+    } else if (cachedDate === today && cachedHash !== currentHash) {
+      console.log('[Articles] Sources changed since last fetch — invalidating cache');
     }
   } catch (e) {
     console.log('[Articles] Cache read error:', e);
@@ -308,9 +349,14 @@ export async function fetchDailyArticles(interests: string[], count: number, res
 
   articles = articles.slice(0, count);
 
+  articles = filterArticlesByDomain(articles, resources);
+  articles = articles.slice(0, count);
+  console.log('[Articles] After domain filter:', articles.length, 'articles');
+
   if (articles.length > 0) {
     await AsyncStorage.setItem(DAILY_ARTICLES_KEY, JSON.stringify(articles));
     await AsyncStorage.setItem(DAILY_DATE_KEY, today);
+    await AsyncStorage.setItem(DAILY_RESOURCES_KEY, currentHash);
     console.log('[Articles] Cached', articles.length, 'articles for', today);
   }
 
@@ -341,5 +387,6 @@ export async function fetchAdditionalArticles(interests: string[], additionalCou
 export async function clearArticleCache(): Promise<void> {
   await AsyncStorage.removeItem(DAILY_ARTICLES_KEY);
   await AsyncStorage.removeItem(DAILY_DATE_KEY);
+  await AsyncStorage.removeItem(DAILY_RESOURCES_KEY);
   console.log('[Articles] Cache cleared');
 }
