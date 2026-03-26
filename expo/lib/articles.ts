@@ -104,11 +104,13 @@ async function searchArticlesWithOpenAI(interests: string[], count: number, reso
 ${searchInstructions}
 ${prefSummary ? `\n${prefSummary}\n` : ''}
 STRICT RULES:
+- You MUST return EXACTLY ${count} articles. This is critical.
 - Every article URL MUST be from one of these domains: ${allowedDomains.join(', ')}
-- If a search returns no result from the correct domain, try another keyword variation on the same domain.
-- If you absolutely cannot find an article on the specified domain for a topic, SKIP that article entirely — do NOT substitute with a different domain.
+- If a search returns no result from the correct domain for a topic, try another keyword variation on the SAME domain.
+- If a topic has no coverage, pick a DIFFERENT topic that IS covered on the allowed domains and return an article for it instead.
+- Cycle through all allowed domains to maximise variety.
 - NEVER return a URL from any domain not listed above.
-- It is acceptable to return fewer than ${count} articles if some topics have no coverage on the specified domains.
+- NEVER return fewer than ${count} articles — always find alternatives on the allowed domains to fill the count.
 
 For each article provide:
 - title: the exact article title
@@ -262,10 +264,11 @@ export async function fetchDailyArticles(interests: string[], count: number, res
 
     if (cachedDate === today && cachedArticles) {
       const parsed = JSON.parse(cachedArticles) as Article[];
-      if (parsed.length > 0) {
-        console.log('[Articles] Returning cached articles for', today);
-        return parsed;
+      if (parsed.length >= count) {
+        console.log('[Articles] Returning cached articles for', today, '— count:', parsed.length);
+        return parsed.slice(0, count);
       }
+      console.log('[Articles] Cache has', parsed.length, 'but need', count, '— re-fetching');
     }
   } catch (e) {
     console.log('[Articles] Cache read error:', e);
@@ -274,15 +277,34 @@ export async function fetchDailyArticles(interests: string[], count: number, res
   console.log('[Articles] Fetching new articles for interests:', interests, 'count:', count, 'resources:', resources?.length ?? 0);
 
   let articles: Article[] = [];
-  try {
-    articles = await searchArticlesWithOpenAI(interests, count, resources, preferences);
-  } catch (error) {
-    console.log('[Articles] OpenAI fetch failed, using fallback:', error);
+  const MAX_RETRIES = 3;
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    const needed = count - articles.length;
+    if (needed <= 0) break;
+
+    console.log('[Articles] Attempt', attempt, '/', MAX_RETRIES, '— need', needed, 'more articles');
+    try {
+      const fetched = await searchArticlesWithOpenAI(interests, needed, resources, preferences);
+      const existingIds = new Set(articles.map(a => a.url));
+      const deduped = fetched.filter(a => !existingIds.has(a.url));
+      const reindexed = deduped.map((a, i) => ({
+        ...a,
+        id: `article-${today}-${articles.length + i}`,
+      }));
+      articles = [...articles, ...reindexed];
+      console.log('[Articles] After attempt', attempt, '— total:', articles.length, '/', count);
+
+      if (articles.length >= count) break;
+    } catch (error) {
+      console.log('[Articles] Attempt', attempt, 'failed:', error);
+      if (attempt === MAX_RETRIES && articles.length === 0) {
+        console.log('[Articles] All attempts exhausted with no articles');
+      }
+    }
   }
 
-  if (articles.length < count) {
-    console.log('[Articles] Got', articles.length, '/', count, 'articles from user sources — no fallback applied, only showing what was found');
-  }
+  articles = articles.slice(0, count);
 
   if (articles.length > 0) {
     await AsyncStorage.setItem(DAILY_ARTICLES_KEY, JSON.stringify(articles));
