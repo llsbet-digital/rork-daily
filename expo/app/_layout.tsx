@@ -3,8 +3,8 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { useFonts } from "expo-font";
 import {
+  useFonts,
   CrimsonText_400Regular,
   CrimsonText_600SemiBold,
   CrimsonText_700Bold,
@@ -37,7 +37,7 @@ function RootLayoutNav() {
     } else if (inOnboarding || inAuth) {
       router.replace('/' as any);
     }
-  }, [isOnboarded, isAuthenticated, isLoading, segments]);
+  }, [isOnboarded, isAuthenticated, isLoading, segments, router]);
 
   return (
     <Stack
@@ -54,6 +54,8 @@ function RootLayoutNav() {
       <Stack.Screen name="settings" options={{ presentation: "modal" }} />
       <Stack.Screen name="premium" options={{ presentation: "modal" }} />
       <Stack.Screen name="manage-interests" options={{ presentation: "modal" }} />
+      <Stack.Screen name="manage-resources" options={{ presentation: "modal" }} />
+      <Stack.Screen name="onboarding-sources" />
       <Stack.Screen name="article" />
     </Stack>
   );
