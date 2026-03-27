@@ -1,6 +1,8 @@
 import { Platform } from 'react-native';
 import Purchases, { LOG_LEVEL, PurchasesOffering, PurchasesPackage, CustomerInfo } from 'react-native-purchases';
 
+const isWeb = Platform.OS === 'web';
+
 function getRCToken(): string {
   if (__DEV__ || Platform.OS === 'web') {
     return process.env.EXPO_PUBLIC_REVENUECAT_TEST_API_KEY || '';
@@ -17,6 +19,10 @@ const apiKey = getRCToken();
 let isConfigured = false;
 
 export function configureRevenueCat() {
+  if (isWeb) {
+    console.log('[RC] Skipping configuration on web');
+    return;
+  }
   if (isConfigured) {
     console.log('[RC] Already configured');
     return;
@@ -26,7 +32,7 @@ export function configureRevenueCat() {
     return;
   }
   try {
-    Purchases.setLogLevel(LOG_LEVEL.DEBUG);
+    void Purchases.setLogLevel(LOG_LEVEL.DEBUG);
     Purchases.configure({ apiKey });
     isConfigured = true;
     console.log('[RC] Configured successfully with key:', apiKey.substring(0, 8) + '...');
@@ -36,7 +42,7 @@ export function configureRevenueCat() {
   }
 }
 
-export function ensureConfigured() {
+export function ensureConfigured(): boolean {
   if (!isConfigured) {
     console.log('[RC] Not configured, attempting configuration...');
     configureRevenueCat();
@@ -45,18 +51,31 @@ export function ensureConfigured() {
 }
 
 export async function getOfferings(): Promise<PurchasesOffering | null> {
+  if (isWeb) {
+    console.log('[RC] Offerings not available on web');
+    return null;
+  }
   if (!ensureConfigured()) {
     throw new Error('RevenueCat is not configured. Please check your API key.');
   }
-  const offerings = await Purchases.getOfferings();
-  console.log('[RC] Offerings:', JSON.stringify(offerings.current?.availablePackages?.length));
-  if (!offerings.current) {
-    console.log('[RC] No current offering found');
+  try {
+    const offerings = await Purchases.getOfferings();
+    console.log('[RC] Offerings:', JSON.stringify(offerings.current?.availablePackages?.length));
+    if (!offerings.current) {
+      console.log('[RC] No current offering found');
+    }
+    return offerings.current ?? null;
+  } catch (error) {
+    console.log('[RC] Error getting offerings:', error);
+    return null;
   }
-  return offerings.current ?? null;
 }
 
 export async function purchasePackage(pkg: PurchasesPackage): Promise<CustomerInfo | null> {
+  if (isWeb) {
+    console.log('[RC] Purchases not available on web');
+    return null;
+  }
   if (!ensureConfigured()) {
     throw new Error('RevenueCat is not configured.');
   }
@@ -76,6 +95,10 @@ export async function purchasePackage(pkg: PurchasesPackage): Promise<CustomerIn
 }
 
 export async function getCustomerInfo(): Promise<CustomerInfo | null> {
+  if (isWeb) {
+    console.log('[RC] Customer info not available on web');
+    return null;
+  }
   if (!ensureConfigured()) {
     console.log('[RC] Not configured, cannot get customer info');
     return null;
@@ -90,12 +113,21 @@ export async function getCustomerInfo(): Promise<CustomerInfo | null> {
 }
 
 export async function restorePurchases(): Promise<CustomerInfo | null> {
+  if (isWeb) {
+    console.log('[RC] Restore not available on web');
+    return null;
+  }
   if (!ensureConfigured()) {
     throw new Error('RevenueCat is not configured.');
   }
-  const info = await Purchases.restorePurchases();
-  console.log('[RC] Purchases restored');
-  return info;
+  try {
+    const info = await Purchases.restorePurchases();
+    console.log('[RC] Purchases restored');
+    return info;
+  } catch (error) {
+    console.log('[RC] Error restoring purchases:', error);
+    return null;
+  }
 }
 
 export function checkEntitlement(info: CustomerInfo | null): boolean {
@@ -104,6 +136,7 @@ export function checkEntitlement(info: CustomerInfo | null): boolean {
 }
 
 export async function loginRC(userId: string): Promise<void> {
+  if (isWeb) return;
   try {
     await Purchases.logIn(userId);
     console.log('[RC] Logged in user:', userId);
@@ -113,6 +146,7 @@ export async function loginRC(userId: string): Promise<void> {
 }
 
 export async function logoutRC(): Promise<void> {
+  if (isWeb) return;
   try {
     await Purchases.logOut();
     console.log('[RC] Logged out');

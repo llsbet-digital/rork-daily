@@ -129,21 +129,27 @@ Respond with ONLY valid JSON, no markdown:
 
   console.log('[Articles] Calling OpenAI Responses API with web search...');
 
-  const response = await fetch('https://api.openai.com/v1/responses', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      tools: [{ type: 'web_search_preview' }],
-      input: prompt,
-    }),
-  });
+  let response: Response;
+  try {
+    response = await fetch('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        tools: [{ type: 'web_search_preview' }],
+        input: prompt,
+      }),
+    });
+  } catch (networkError) {
+    console.log('[Articles] Network error calling OpenAI:', networkError);
+    throw new Error('Network error: Unable to reach OpenAI. Please check your internet connection.');
+  }
 
   if (!response.ok) {
-    const errorText = await response.text();
+    const errorText = await response.text().catch(() => 'unknown');
     console.log('[Articles] OpenAI request failed:', response.status, errorText);
     throw new Error(`OpenAI request failed: ${response.status}`);
   }
