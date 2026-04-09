@@ -8,6 +8,7 @@ import { fetchDailyArticles, fetchAdditionalArticles, clearArticleCache } from '
 import { supabase, UserProfile } from '@/lib/supabase';
 import { Session } from '@supabase/supabase-js';
 import { configureRevenueCat, getCustomerInfo, checkEntitlement, loginRC, logoutRC } from '@/lib/revenuecat';
+import { useStreak } from '@/hooks/useStreak';
 
 const STORAGE_KEYS = {
   ARTICLES: 'daily_articles',
@@ -48,6 +49,16 @@ export const [AppProvider, useApp] = createContextHook(() => {
   const [resources, setResources] = useState<NewsResource[]>([]);
   const [resourcesLoaded, setResourcesLoaded] = useState<boolean>(false);
   const [preferences, setPreferences] = useState<UserPreferences>({ topics: {} });
+
+  const {
+    currentStreak,
+    longestStreak,
+    lastReadDate,
+    graceActive,
+    readDays,
+    onArticleRead,
+    dismissGrace,
+  } = useStreak();
 
   useEffect(() => {
     console.log('[App] Initializing Supabase auth listener');
@@ -556,26 +567,22 @@ export const [AppProvider, useApp] = createContextHook(() => {
   }, [savedArticleIds, savedArticlesQuery.data, session, queryClient]);
 
   const markArticleRead = useCallback((articleId: string) => {
-    setArticles(prev => {
-      const updated = prev.map(a =>
-        a.id === articleId ? { ...a, isRead: true } : a
-      );
-      return updated;
-    });
+    setArticles(prev => prev.map(a => a.id === articleId ? { ...a, isRead: true } : a));
     setTodayReadsCompleted(prev => prev + 1);
-    if (user && session?.user?.id) {
-      const newTotal = user.totalArticlesRead + 1;
-      const newStreak = Math.max(user.streak, 1);
-      setUser(prev => prev ? { ...prev, totalArticlesRead: newTotal, streak: newStreak } : null);
-      supabase
-        .from('profiles')
-        .update({ total_articles_read: newTotal, streak: newStreak })
-        .eq('id', session.user.id)
-        .then(({ error }) => {
-          if (error) console.log('[App] Update read count error:', error.message);
-        });
-    }
-  }, [user, session]);
+    onArticleRead().then(updated => {
+      if (user && session?.user?.id) {
+        const newTotal = user.totalArticlesRead + 1;
+        setUser(prev => prev ? { ...prev, totalArticlesRead: newTotal, streak: updated.currentStreak } : null);
+        supabase
+          .from('profiles')
+          .update({ total_articles_read: newTotal, streak: updated.currentStreak })
+          .eq('id', session.user.id)
+          .then(({ error }) => {
+            if (error) console.log('[App] Update read count error:', error.message);
+          });
+      }
+    });
+  }, [user, session, onArticleRead]);
 
   const ensureSavedArticlesTable = useCallback(async () => {
     if (!session?.user?.id) return false;
@@ -890,6 +897,12 @@ Respond in this exact JSON format:
     resources,
     addResource,
     removeResource,
+    currentStreak,
+    longestStreak,
+    lastReadDate,
+    graceActive,
+    readDays,
+    dismissGrace,
 
     isSigningUp: false,
     isSigningIn: false,

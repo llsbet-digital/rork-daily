@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Sparkles, Bookmark, ThumbsUp, ThumbsDown } from 'lucide-react-native';
+import { Sparkles, Bookmark, ThumbsUp, ThumbsDown, X } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import * as WebBrowser from 'expo-web-browser';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -18,6 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Colors, { CARD_COLORS } from '@/constants/colors';
 import { useApp } from '@/providers/AppProvider';
 import { Article } from '@/types';
+import { toDateString } from '@/lib/streak';
 
 function ArticleCard({ article, onSave, onRead, onFeedback, onGenerateInsight, index, isGenerating, hasInsight, showTooltip, onDismissTooltip }: {
   article: Article;
@@ -170,6 +171,31 @@ function ArticleCard({ article, onSave, onRead, onFeedback, onGenerateInsight, i
   );
 }
 
+function StreakDots({ readDays }: { readDays: string[] }) {
+  const today = toDateString(new Date());
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    return toDateString(d);
+  });
+  const readSet = new Set(readDays);
+
+  return (
+    <View style={styles.dotsRow}>
+      {days.map(day => (
+        <View
+          key={day}
+          style={[
+            styles.dot,
+            readSet.has(day) && styles.dotFilled,
+            day === today && !readSet.has(day) && styles.dotToday,
+          ]}
+        />
+      ))}
+    </View>
+  );
+}
+
 function ArticleSkeleton({ index }: { index: number }) {
   const pulseAnim = React.useRef(new Animated.Value(0.3)).current;
   const bgColor = CARD_COLORS[index % CARD_COLORS.length];
@@ -210,10 +236,16 @@ export default function TodayScreen() {
     insights,
     generatingInsightId,
     resources,
+    currentStreak,
+    readDays,
+    graceActive,
+    dismissGrace,
   } = useApp();
 
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const [showSparkleTooltip, setShowSparkleTooltip] = useState(false);
+
+  const allRead = dailyArticles.length > 0 && dailyArticles.every(a => a.isRead);
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -268,6 +300,17 @@ export default function TodayScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
+          {graceActive && (
+            <View style={styles.graceBanner}>
+              <Text style={styles.graceText}>
+                Life happens. Your streak paused — start a new one today.
+              </Text>
+              <TouchableOpacity onPress={dismissGrace} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <X size={16} color={Colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+          )}
+
           <View style={styles.articlesSection}>
             {articlesLoading && dailyArticles.length === 0 ? (
               <>
@@ -300,6 +343,18 @@ export default function TodayScreen() {
                 <Text style={styles.emptySubtitle}>
                   Pull down to refresh, or update your sources in Settings.
                 </Text>
+              </View>
+            ) : allRead ? (
+              <View style={styles.doneContainer}>
+                <Text style={styles.doneTitle}>All caught up</Text>
+                <Text style={styles.doneSubtitle}>Come back tomorrow for more.</Text>
+                <View style={styles.streakBlock}>
+                  <Text style={styles.streakCount}>{currentStreak}</Text>
+                  <Text style={styles.streakLabel}>
+                    {currentStreak === 1 ? 'day streak' : 'day streak'}
+                  </Text>
+                </View>
+                <StreakDots readDays={readDays} />
               </View>
             ) : (
               dailyArticles.map((article, idx) => (
@@ -541,5 +596,78 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     fontSize: 16,
     fontWeight: '600' as const,
+  },
+  graceBanner: {
+    marginHorizontal: 20,
+    marginBottom: 12,
+    backgroundColor: Colors.primaryLight,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: Colors.borderWarm,
+  },
+  graceText: {
+    flex: 1,
+    fontSize: 14,
+    color: Colors.text,
+    lineHeight: 20,
+  },
+  doneContainer: {
+    alignItems: 'center' as const,
+    paddingVertical: 60,
+    paddingHorizontal: 20,
+  },
+  doneTitle: {
+    fontSize: 28,
+    fontWeight: '700' as const,
+    color: Colors.text,
+    fontFamily: 'CrimsonText_700Bold',
+    marginBottom: 6,
+  },
+  doneSubtitle: {
+    fontSize: 15,
+    color: Colors.textSecondary,
+    marginBottom: 36,
+  },
+  streakBlock: {
+    alignItems: 'center' as const,
+    marginBottom: 20,
+  },
+  streakCount: {
+    fontSize: 56,
+    fontWeight: '700' as const,
+    color: Colors.text,
+    fontFamily: 'CrimsonText_700Bold',
+    lineHeight: 64,
+  },
+  streakLabel: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  dotsRow: {
+    flexDirection: 'row' as const,
+    gap: 8,
+    marginTop: 4,
+  },
+  dot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: Colors.border,
+    borderWidth: 1.5,
+    borderColor: Colors.textMuted,
+  },
+  dotFilled: {
+    backgroundColor: Colors.primary,
+    borderColor: '#1A1A1A',
+  },
+  dotToday: {
+    borderColor: Colors.text,
+    borderWidth: 1.5,
   },
 });

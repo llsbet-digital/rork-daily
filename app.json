@@ -19,7 +19,8 @@
       "buildNumber": "1",
       "infoPlist": {
         "NSCameraUsageDescription": "Allow Paprr to access your camera to update your profile photo.",
-        "NSPhotoLibraryUsageDescription": "Allow Paprr to access your photo library to update your profile photo."
+        "NSPhotoLibraryUsageDescription": "Allow Paprr to access your photo library to update your profile photo.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -28,7 +29,10 @@
         "backgroundColor": "#F5F5F5"
       },
       "package": "app.rork.paprr",
-      "versionCode": 1
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
@@ -53,6 +57,14 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": "https://rork.com/"
+      },
+      "eas": {
+        "projectId": "144ef2ed-3b3a-4f13-b5ba-4e1c601a2ed9"
+      }
     }
   }
 }
