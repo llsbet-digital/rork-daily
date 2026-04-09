@@ -17,7 +17,6 @@ import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 import { useApp } from '@/providers/AppProvider';
 import { getOfferings, purchasePackage, restorePurchases } from '@/lib/revenuecat';
-import { PurchasesPackage } from 'react-native-purchases';
 
 const comparisonRows = [
   { feature: 'Daily Reads', free: '3', premium: '5' },
@@ -73,7 +72,7 @@ export default function PremiumScreen() {
   const activePackage = selectedPlan === 'yearly' ? yearlyPackage : monthlyPackage;
 
   const purchaseMutation = useMutation({
-    mutationFn: async (pkg: PurchasesPackage) => {
+    mutationFn: async (pkg: any) => {
       const result = await purchasePackage(pkg);
       return result;
     },

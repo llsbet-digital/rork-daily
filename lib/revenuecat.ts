@@ -1,7 +1,25 @@
 import { Platform } from 'react-native';
-import Purchases, { LOG_LEVEL, PurchasesOffering, PurchasesPackage, CustomerInfo } from 'react-native-purchases';
 
 const isWeb = Platform.OS === 'web';
+
+let Purchases: any = null;
+let LOG_LEVEL: any = null;
+
+if (!isWeb) {
+  try {
+    const rc = require('react-native-purchases');
+    Purchases = rc.default || rc.Purchases || rc;
+    LOG_LEVEL = rc.LOG_LEVEL;
+  } catch (e) {
+    console.log('[RC] Failed to load react-native-purchases:', e);
+  }
+}
+
+export type CustomerInfo = {
+  entitlements?: {
+    active?: Record<string, unknown>;
+  };
+};
 
 function getRCToken(): string {
   if (__DEV__ || Platform.OS === 'web') {
@@ -19,8 +37,8 @@ const apiKey = getRCToken();
 let isConfigured = false;
 
 export function configureRevenueCat() {
-  if (isWeb) {
-    console.log('[RC] Skipping configuration on web');
+  if (isWeb || !Purchases) {
+    console.log('[RC] Skipping configuration (web or module unavailable)');
     return;
   }
   if (isConfigured) {
@@ -32,7 +50,9 @@ export function configureRevenueCat() {
     return;
   }
   try {
-    void Purchases.setLogLevel(LOG_LEVEL.DEBUG);
+    if (LOG_LEVEL) {
+      void Purchases.setLogLevel(LOG_LEVEL.DEBUG);
+    }
     Purchases.configure({ apiKey });
     isConfigured = true;
     console.log('[RC] Configured successfully with key:', apiKey.substring(0, 8) + '...');
@@ -50,8 +70,8 @@ export function ensureConfigured(): boolean {
   return isConfigured;
 }
 
-export async function getOfferings(): Promise<PurchasesOffering | null> {
-  if (isWeb) {
+export async function getOfferings(): Promise<any | null> {
+  if (isWeb || !Purchases) {
     console.log('[RC] Offerings not available on web');
     return null;
   }
@@ -71,8 +91,8 @@ export async function getOfferings(): Promise<PurchasesOffering | null> {
   }
 }
 
-export async function purchasePackage(pkg: PurchasesPackage): Promise<CustomerInfo | null> {
-  if (isWeb) {
+export async function purchasePackage(pkg: any): Promise<CustomerInfo | null> {
+  if (isWeb || !Purchases) {
     console.log('[RC] Purchases not available on web');
     return null;
   }
@@ -95,7 +115,7 @@ export async function purchasePackage(pkg: PurchasesPackage): Promise<CustomerIn
 }
 
 export async function getCustomerInfo(): Promise<CustomerInfo | null> {
-  if (isWeb) {
+  if (isWeb || !Purchases) {
     console.log('[RC] Customer info not available on web');
     return null;
   }
@@ -113,7 +133,7 @@ export async function getCustomerInfo(): Promise<CustomerInfo | null> {
 }
 
 export async function restorePurchases(): Promise<CustomerInfo | null> {
-  if (isWeb) {
+  if (isWeb || !Purchases) {
     console.log('[RC] Restore not available on web');
     return null;
   }
@@ -136,7 +156,7 @@ export function checkEntitlement(info: CustomerInfo | null): boolean {
 }
 
 export async function loginRC(userId: string): Promise<void> {
-  if (isWeb) return;
+  if (isWeb || !Purchases) return;
   try {
     await Purchases.logIn(userId);
     console.log('[RC] Logged in user:', userId);
@@ -146,7 +166,7 @@ export async function loginRC(userId: string): Promise<void> {
 }
 
 export async function logoutRC(): Promise<void> {
-  if (isWeb) return;
+  if (isWeb || !Purchases) return;
   try {
     await Purchases.logOut();
     console.log('[RC] Logged out');
