@@ -50,7 +50,7 @@ function RootLayoutNav() {
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="auth" options={{ gestureEnabled: false }} />
       <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
-      <Stack.Screen name="onboarding-how" />
+      <Stack.Screen name="onboarding-how" options={{ animation: 'fade' }} />
       <Stack.Screen name="onboarding-interests" />
       <Stack.Screen name="settings" options={{ presentation: "modal" }} />
       <Stack.Screen name="premium" options={{ presentation: "modal" }} />
