@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Sparkles, Bookmark, ThumbsUp, ThumbsDown, X } from 'lucide-react-native';
+import { Sparkles, Bookmark, ThumbsUp, ThumbsDown, X, Check } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import * as WebBrowser from 'expo-web-browser';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -172,26 +172,91 @@ function ArticleCard({ article, onSave, onRead, onFeedback, onGenerateInsight, i
 }
 
 function StreakDots({ readDays }: { readDays: string[] }) {
-  const today = toDateString(new Date());
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (6 - i));
     return toDateString(d);
   });
   const readSet = new Set(readDays);
-
   return (
     <View style={styles.dotsRow}>
       {days.map(day => (
-        <View
-          key={day}
-          style={[
-            styles.dot,
-            readSet.has(day) && styles.dotFilled,
-            day === today && !readSet.has(day) && styles.dotToday,
-          ]}
-        />
+        <View key={day} style={[styles.dot, readSet.has(day) ? styles.dotFilled : styles.dotEmpty]} />
       ))}
+    </View>
+  );
+}
+
+function DoneScreen({
+  articles,
+  currentStreak,
+  readDays,
+  isPremium,
+  todaySavesUsed,
+  maxDailySaves,
+  onSave,
+  onUnlockPro,
+}: {
+  articles: Article[];
+  currentStreak: number;
+  readDays: string[];
+  isPremium: boolean;
+  todaySavesUsed: number;
+  maxDailySaves: number;
+  onSave: (id: string) => void;
+  onUnlockPro: () => void;
+}) {
+  const headline =
+    currentStreak === 1 ? "That's your reading done." :
+    currentStreak === 3 ? 'Day 3. Still here.' :
+    currentStreak === 7 ? 'Seven days of reading intentionally.' :
+    'Done for today. Well read.';
+
+  return (
+    <View style={styles.doneContainer}>
+      <View style={styles.doneCheckCircle}>
+        <Check size={18} color="#1A1A1A" strokeWidth={2.5} />
+      </View>
+
+      <Text style={styles.doneTitle}>{headline}</Text>
+      <Text style={styles.doneSubtitle}>You read what mattered today. See you tomorrow.</Text>
+
+      <StreakDots readDays={readDays} />
+
+      <View style={styles.recapList}>
+        {articles.map(article => {
+          const canSave = !article.isSaved && todaySavesUsed < maxDailySaves;
+          return (
+            <View key={article.id} style={styles.recapCard}>
+              <View style={styles.recapCardContent}>
+                <Text style={styles.recapSource}>{article.source}</Text>
+                <Text style={styles.recapTitle} numberOfLines={2}>{article.title}</Text>
+              </View>
+              {article.isSaved ? (
+                <Text style={styles.recapSavedLabel}>Saved</Text>
+              ) : canSave ? (
+                <TouchableOpacity
+                  onPress={() => onSave(article.id)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={styles.recapSaveBtn}>Save</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          );
+        })}
+      </View>
+
+      <Text style={styles.tomorrowNote}>Tomorrow's articles are ready at 7:00 am</Text>
+
+      {!isPremium && (
+        <View style={styles.upsellBlock}>
+          <TouchableOpacity style={styles.upsellButton} onPress={onUnlockPro} activeOpacity={0.75}>
+            <Text style={styles.upsellButtonText}>Unlock Pro</Text>
+          </TouchableOpacity>
+          <Text style={styles.upsellNote}>€3.99/month · cancel anytime</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -240,6 +305,8 @@ export default function TodayScreen() {
     readDays,
     graceActive,
     dismissGrace,
+    todaySavesUsed,
+    maxDailySaves,
   } = useApp();
 
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
@@ -345,17 +412,16 @@ export default function TodayScreen() {
                 </Text>
               </View>
             ) : allRead ? (
-              <View style={styles.doneContainer}>
-                <Text style={styles.doneTitle}>All caught up</Text>
-                <Text style={styles.doneSubtitle}>Come back tomorrow for more.</Text>
-                <View style={styles.streakBlock}>
-                  <Text style={styles.streakCount}>{currentStreak}</Text>
-                  <Text style={styles.streakLabel}>
-                    {currentStreak === 1 ? 'day streak' : 'day streak'}
-                  </Text>
-                </View>
-                <StreakDots readDays={readDays} />
-              </View>
+              <DoneScreen
+                articles={dailyArticles}
+                currentStreak={currentStreak}
+                readDays={readDays}
+                isPremium={user?.isPremium ?? false}
+                todaySavesUsed={todaySavesUsed}
+                maxDailySaves={maxDailySaves}
+                onSave={toggleSaveArticle}
+                onUnlockPro={() => router.push('/premium' as any)}
+              />
             ) : (
               dailyArticles.map((article, idx) => (
                 <ArticleCard
@@ -616,58 +682,114 @@ const styles = StyleSheet.create({
     color: Colors.text,
     lineHeight: 20,
   },
+  // ── Done screen ──────────────────────────────────────
   doneContainer: {
+    paddingTop: 40,
+    paddingBottom: 48,
+    paddingHorizontal: 24,
+  },
+  doneCheckCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.primary,
+    borderWidth: 1.5,
+    borderColor: '#1A1A1A',
+    justifyContent: 'center' as const,
     alignItems: 'center' as const,
-    paddingVertical: 60,
-    paddingHorizontal: 20,
+    marginBottom: 20,
   },
   doneTitle: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '700' as const,
     color: Colors.text,
     fontFamily: 'CrimsonText_700Bold',
-    marginBottom: 6,
+    marginBottom: 8,
+    lineHeight: 32,
   },
   doneSubtitle: {
     fontSize: 15,
     color: Colors.textSecondary,
-    marginBottom: 36,
-  },
-  streakBlock: {
-    alignItems: 'center' as const,
-    marginBottom: 20,
-  },
-  streakCount: {
-    fontSize: 56,
-    fontWeight: '700' as const,
-    color: Colors.text,
-    fontFamily: 'CrimsonText_700Bold',
-    lineHeight: 64,
-  },
-  streakLabel: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    marginTop: 2,
+    lineHeight: 22,
+    marginBottom: 24,
   },
   dotsRow: {
     flexDirection: 'row' as const,
     gap: 8,
-    marginTop: 4,
+    marginBottom: 32,
   },
   dot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: Colors.border,
-    borderWidth: 1.5,
-    borderColor: Colors.textMuted,
   },
   dotFilled: {
-    backgroundColor: Colors.primary,
-    borderColor: '#1A1A1A',
+    backgroundColor: '#4ECDC4',
   },
-  dotToday: {
-    borderColor: Colors.text,
+  dotEmpty: {
+    backgroundColor: '#3A3A3A',
+  },
+  recapList: {
+    gap: 8,
+    marginBottom: 28,
+  },
+  recapCard: {
+    backgroundColor: '#1A1A1A',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 12,
+  },
+  recapCardContent: {
+    flex: 1,
+  },
+  recapSource: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.4)',
+    marginBottom: 4,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.5,
+  },
+  recapTitle: {
+    fontSize: 14,
+    fontWeight: '500' as const,
+    color: '#FFFFFF',
+    lineHeight: 20,
+  },
+  recapSavedLabel: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.3)',
+  },
+  recapSaveBtn: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: '#4ECDC4',
+  },
+  tomorrowNote: {
+    fontSize: 13,
+    color: Colors.textMuted,
+    marginBottom: 36,
+  },
+  upsellBlock: {
+    alignItems: 'flex-start' as const,
+    gap: 8,
+  },
+  upsellButton: {
     borderWidth: 1.5,
+    borderColor: Colors.text,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+  },
+  upsellButtonText: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: Colors.text,
+  },
+  upsellNote: {
+    fontSize: 11,
+    color: Colors.textMuted,
   },
 });
