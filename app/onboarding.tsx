@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Colors from '@/constants/colors';
 
 export default function OnboardingWelcome() {
   const router = useRouter();
@@ -40,7 +41,7 @@ export default function OnboardingWelcome() {
         <TouchableOpacity
           style={styles.cta}
           onPress={() => router.push('/onboarding-how' as any)}
-          activeOpacity={0.85}
+          activeOpacity={0.8}
           testID="get-started-button"
         >
           <Text style={styles.ctaText}>Get started</Text>
@@ -53,8 +54,8 @@ export default function OnboardingWelcome() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0e0e0f',
-    paddingHorizontal: 28,
+    backgroundColor: Colors.background,
+    paddingHorizontal: 24,
   },
   centre: {
     flex: 1,
@@ -63,14 +64,14 @@ const styles = StyleSheet.create({
   line1: {
     fontSize: 48,
     fontFamily: 'CrimsonText_700Bold',
-    color: '#F0EDE8',
+    color: Colors.text,
     lineHeight: 56,
     letterSpacing: -0.5,
   },
   line2: {
     fontSize: 48,
     fontFamily: 'CrimsonText_700Bold',
-    color: 'rgba(240,237,232,0.38)',
+    color: Colors.textSecondary,
     lineHeight: 56,
     letterSpacing: -0.5,
   },
@@ -79,18 +80,20 @@ const styles = StyleSheet.create({
   },
   body: {
     fontSize: 15,
-    color: 'rgba(240,237,232,0.5)',
+    color: Colors.textSecondary,
     lineHeight: 22,
   },
   cta: {
-    backgroundColor: '#F0EDE8',
+    backgroundColor: Colors.primary,
     borderRadius: 14,
-    paddingVertical: 17,
+    paddingVertical: 16,
     alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#1A1A1A',
   },
   ctaText: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '600',
-    color: '#0e0e0f',
+    color: '#1A1A1A',
   },
 });

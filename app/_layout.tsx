@@ -24,7 +24,7 @@ function RootLayoutNav() {
     if (isLoading) return;
 
     const currentSegment = segments[0] as string;
-    const inOnboarding = currentSegment === 'onboarding' || currentSegment === 'onboarding-how' || currentSegment === 'onboarding-interests';
+    const inOnboarding = currentSegment === 'onboarding' || currentSegment === 'onboarding-how' || currentSegment === 'onboarding-interests' || currentSegment === 'onboarding-sources';
     const inAuth = currentSegment === 'auth';
 
     if (!isAuthenticated) {
