@@ -363,7 +363,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     return savedArticlesQuery.data.filter(r => new Date(r.saved_at) >= todayStart).length;
   }, [savedArticlesQuery.data]);
 
-  const signUp = useCallback(async (email: string, password: string, name: string) => {
+  const signUp = useCallback(async (email: string, password: string, name: string): Promise<{ confirmationRequired: boolean }> => {
     console.log('[App] Signing up:', email);
     setIsNewSignUp(true);
     const { data, error } = await supabase.auth.signUp({
@@ -380,8 +380,11 @@ export const [AppProvider, useApp] = createContextHook(() => {
       throw new Error(error.message);
     }
 
+    // session is null when Supabase requires email confirmation
+    const confirmationRequired = !!data.user && !data.session;
+
     if (data.user) {
-      console.log('[App] Sign up success:', data.user.id);
+      console.log('[App] Sign up success:', data.user.id, 'confirmationRequired:', confirmationRequired);
       const { error: profileError } = await supabase
         .from('profiles')
         .upsert({
@@ -400,8 +403,16 @@ export const [AppProvider, useApp] = createContextHook(() => {
         console.log('[App] Profile creation error:', profileError.message);
       }
 
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      if (!confirmationRequired) {
+        queryClient.invalidateQueries({ queryKey: ['profile'] });
+      }
     }
+
+    if (confirmationRequired) {
+      setIsNewSignUp(false); // don't auto-redirect while waiting for confirmation
+    }
+
+    return { confirmationRequired };
   }, [queryClient]);
 
   const signIn = useCallback(async (email: string, password: string) => {

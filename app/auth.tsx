@@ -13,11 +13,12 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'react-native';
-import { Eye, EyeOff } from 'lucide-react-native';
+import { Eye, EyeOff, Mail } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 import { useApp } from '@/providers/AppProvider';
 import { AuthMode } from '@/types';
+import { supabase } from '@/lib/supabase';
 
 export default function AuthScreen() {
   const insets = useSafeAreaInsets();
@@ -31,6 +32,8 @@ export default function AuthScreen() {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [nameError, setNameError] = useState('');
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(false);
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
@@ -58,7 +61,12 @@ export default function AuthScreen() {
     setIsSubmitting(true);
     try {
       if (mode === 'signup') {
-        await signUp(email.trim(), password, name.trim());
+        const { confirmationRequired } = await signUp(email.trim(), password, name.trim());
+        if (confirmationRequired) {
+          setAwaitingConfirmation(true);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          return;
+        }
       } else {
         await signIn(email.trim(), password);
       }
@@ -72,6 +80,18 @@ export default function AuthScreen() {
       setIsSubmitting(false);
     }
   }, [email, password, name, mode, signIn, signUp]);
+
+  const handleResend = useCallback(async () => {
+    if (resendCooldown) return;
+    try {
+      await supabase.auth.resend({ type: 'signup', email: email.trim() });
+      setResendCooldown(true);
+      setTimeout(() => setResendCooldown(false), 30000);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch {
+      Alert.alert('Error', 'Could not resend. Please try again shortly.');
+    }
+  }, [email, resendCooldown]);
 
   const validateEmail = useCallback((val: string) => {
     if (!val.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim())) {
@@ -104,6 +124,48 @@ export default function AuthScreen() {
     setNameError('');
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
+
+  if (awaitingConfirmation) {
+    return (
+      <View style={[styles.container, styles.confirmContainer, { paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 32) }]}>
+        <Animated.View style={[styles.confirmContent, { opacity: fadeAnim }]}>
+          <View style={styles.confirmIconWrap}>
+            <Mail size={28} color="#1A1A1A" />
+          </View>
+          <Text style={styles.confirmTitle}>Check your inbox</Text>
+          <Text style={styles.confirmBody}>
+            We sent a confirmation link to{'\n'}
+            <Text style={styles.confirmEmail}>{email.trim()}</Text>
+          </Text>
+          <Text style={styles.confirmHint}>
+            Tap the link in the email to verify your account, then come back and sign in.
+          </Text>
+
+          <TouchableOpacity
+            style={styles.authButton}
+            onPress={() => {
+              setAwaitingConfirmation(false);
+              setMode('signin');
+            }}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.authButtonText}>Go to Sign In</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={handleResend}
+            activeOpacity={0.6}
+            disabled={resendCooldown}
+            style={styles.resendRow}
+          >
+            <Text style={[styles.resendText, resendCooldown && styles.resendTextMuted]}>
+              {resendCooldown ? 'Email sent — check your inbox' : "Didn't get it? Resend"}
+            </Text>
+          </TouchableOpacity>
+        </Animated.View>
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -323,5 +385,63 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#1A1A1A',
     fontWeight: '600' as const,
+  },
+  confirmContainer: {
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  confirmContent: {
+    alignItems: 'center',
+  },
+  confirmIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: Colors.primary,
+    borderWidth: 1.5,
+    borderColor: '#1A1A1A',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  confirmTitle: {
+    fontSize: 26,
+    fontWeight: '700' as const,
+    color: Colors.text,
+    fontFamily: 'CrimsonText_700Bold',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  confirmBody: {
+    fontSize: 15,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 12,
+  },
+  confirmEmail: {
+    color: Colors.text,
+    fontWeight: '600' as const,
+  },
+  confirmHint: {
+    fontSize: 14,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 21,
+    marginBottom: 32,
+    paddingHorizontal: 8,
+  },
+  resendRow: {
+    marginTop: 16,
+    paddingVertical: 8,
+  },
+  resendText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    textDecorationLine: 'underline',
+  },
+  resendTextMuted: {
+    color: Colors.textMuted,
+    textDecorationLine: 'none',
   },
 });
