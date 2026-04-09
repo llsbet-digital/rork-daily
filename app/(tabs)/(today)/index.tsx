@@ -724,7 +724,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   dotFilled: {
-    backgroundColor: '#4ECDC4',
+    backgroundColor: Colors.primary,
   },
   dotEmpty: {
     backgroundColor: '#3A3A3A',
@@ -765,7 +765,7 @@ const styles = StyleSheet.create({
   recapSaveBtn: {
     fontSize: 13,
     fontWeight: '600' as const,
-    color: '#4ECDC4',
+    color: Colors.primary,
   },
   tomorrowNote: {
     fontSize: 13,
