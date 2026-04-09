@@ -294,10 +294,11 @@ function DoneScreen({
       <StreakDots readDays={readDays} />
 
       <View style={styles.recapList}>
-        {articles.map(article => {
+        {articles.map((article, idx) => {
           const canSave = !article.isSaved && todaySavesUsed < maxDailySaves;
+          const bgColor = CARD_COLORS[idx % CARD_COLORS.length];
           return (
-            <View key={article.id} style={styles.recapCard}>
+            <View key={article.id} style={[styles.recapCard, { backgroundColor: bgColor }]}>
               <View style={styles.recapCardContent}>
                 <Text style={styles.recapSource}>{article.source}</Text>
                 <Text style={styles.recapTitle} numberOfLines={2}>{article.title}</Text>
@@ -806,7 +807,8 @@ const styles = StyleSheet.create({
   doneContainer: {
     paddingTop: 40,
     paddingBottom: 48,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
+    alignItems: 'center' as const,
   },
   doneCheckCircle: {
     width: 36,
@@ -826,17 +828,20 @@ const styles = StyleSheet.create({
     fontFamily: 'CrimsonText_700Bold',
     marginBottom: 8,
     lineHeight: 32,
+    textAlign: 'center' as const,
   },
   doneSubtitle: {
     fontSize: 15,
     color: Colors.textSecondary,
     lineHeight: 22,
     marginBottom: 24,
+    textAlign: 'center' as const,
   },
   dotsRow: {
     flexDirection: 'row' as const,
     gap: 8,
     marginBottom: 32,
+    alignSelf: 'flex-start' as const,
   },
   dot: {
     width: 10,
@@ -847,45 +852,45 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
   },
   dotEmpty: {
-    backgroundColor: '#3A3A3A',
+    backgroundColor: Colors.border,
   },
   recapList: {
-    gap: 8,
+    gap: 12,
     marginBottom: 28,
+    alignSelf: 'stretch' as const,
   },
   recapCard: {
-    backgroundColor: '#1A1A1A',
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    borderRadius: 20,
+    padding: 20,
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     gap: 12,
+    minHeight: 90,
   },
   recapCardContent: {
     flex: 1,
   },
   recapSource: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.4)',
-    marginBottom: 4,
-    textTransform: 'uppercase' as const,
-    letterSpacing: 0.5,
+    fontSize: 12,
+    color: 'rgba(0,0,0,0.45)',
+    marginBottom: 5,
   },
   recapTitle: {
-    fontSize: 14,
-    fontWeight: '500' as const,
-    color: '#FFFFFF',
-    lineHeight: 20,
+    fontSize: 16,
+    fontWeight: '700' as const,
+    color: Colors.text,
+    lineHeight: 22,
+    letterSpacing: -0.3,
+    fontFamily: 'CrimsonText_700Bold',
   },
   recapSavedLabel: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.3)',
+    color: 'rgba(0,0,0,0.35)',
   },
   recapSaveBtn: {
     fontSize: 13,
     fontWeight: '600' as const,
-    color: Colors.primary,
+    color: 'rgba(0,0,0,0.6)',
   },
   insightCard: {
     backgroundColor: Colors.cardBackground,
@@ -928,10 +933,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.textMuted,
     marginBottom: 36,
+    textAlign: 'center' as const,
   },
   upsellBlock: {
-    alignItems: 'flex-start' as const,
+    alignItems: 'center' as const,
     gap: 8,
+    alignSelf: 'stretch' as const,
   },
   upsellButton: {
     borderWidth: 1.5,
@@ -939,6 +946,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 24,
+    alignSelf: 'stretch' as const,
+    alignItems: 'center' as const,
   },
   upsellButtonText: {
     fontSize: 15,
