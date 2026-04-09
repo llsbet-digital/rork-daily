@@ -210,12 +210,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
       setUser(appUser);
       setIsAuthenticated(true);
       const onboarded = profileQuery.data.is_onboarded;
-      if (!isNewSignUp && !onboarded) {
-        console.log('[App] Returning user not onboarded, skipping onboarding');
-        setIsOnboarded(true);
-      } else {
-        setIsOnboarded(onboarded);
-      }
+      setIsOnboarded(onboarded);
       console.log('[App] Profile loaded:', appUser.id, 'onboarded:', onboarded, 'premium:', rcPremium);
     } else if (profileQuery.isError) {
       console.log('[App] Profile query error, resetting auth state');
