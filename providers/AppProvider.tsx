@@ -256,22 +256,47 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
   const loadResources = useCallback(async () => {
     try {
+      // Try Supabase first if authenticated
+      if (session?.user?.id) {
+        const { data, error } = await supabase
+          .from('user_resources')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .order('added_at', { ascending: true });
+
+        if (!error && data) {
+          const parsed: NewsResource[] = data.map(r => ({
+            id: r.resource_id,
+            name: r.name,
+            url: r.url,
+            addedAt: r.added_at,
+          }));
+          setResources(parsed);
+          await AsyncStorage.setItem(STORAGE_KEYS.RESOURCES, JSON.stringify(parsed));
+          console.log('[App] Loaded', parsed.length, 'resources from Supabase');
+          setResourcesLoaded(true);
+          return;
+        }
+        console.log('[App] Supabase resources fetch failed, falling back to cache:', error?.message);
+      }
+
+      // Fallback to AsyncStorage cache
       const stored = await AsyncStorage.getItem(STORAGE_KEYS.RESOURCES);
       if (stored) {
         const parsed = JSON.parse(stored) as NewsResource[];
         setResources(parsed);
-        console.log('[App] Loaded', parsed.length, 'resources');
+        console.log('[App] Loaded', parsed.length, 'resources from cache');
       }
     } catch (e) {
       console.log('[App] Failed to load resources:', e);
     } finally {
       setResourcesLoaded(true);
     }
-  }, []);
+  }, [session?.user?.id]);
 
   useEffect(() => {
     loadResources();
-  }, [loadResources]);
+  }, [session?.user?.id]);
 
   const loadPreferences = useCallback(async () => {
     try {
@@ -318,17 +343,39 @@ export const [AppProvider, useApp] = createContextHook(() => {
     const updated = [...resources, newResource];
     setResources(updated);
     await AsyncStorage.setItem(STORAGE_KEYS.RESOURCES, JSON.stringify(updated));
+
+    if (session?.user?.id) {
+      const { error } = await supabase.from('user_resources').insert({
+        user_id: session.user.id,
+        resource_id: newResource.id,
+        name: newResource.name,
+        url: newResource.url,
+        added_at: newResource.addedAt,
+      });
+      if (error) console.log('[App] Failed to sync resource to Supabase:', error.message);
+    }
+
     await clearArticleCache();
     console.log('[App] Added resource:', name, url);
     if (user?.interests && user.interests.length > 0) {
       loadArticlesForUser(user.interests, user?.isPremium ?? false, updated);
     }
-  }, [resources, user, loadArticlesForUser]);
+  }, [resources, user, session, loadArticlesForUser]);
 
   const removeResource = useCallback(async (id: string) => {
     const updated = resources.filter(r => r.id !== id);
     setResources(updated);
     await AsyncStorage.setItem(STORAGE_KEYS.RESOURCES, JSON.stringify(updated));
+
+    if (session?.user?.id) {
+      const { error } = await supabase
+        .from('user_resources')
+        .delete()
+        .eq('user_id', session.user.id)
+        .eq('resource_id', id);
+      if (error) console.log('[App] Failed to remove resource from Supabase:', error.message);
+    }
+
     await clearArticleCache();
     console.log('[App] Removed resource:', id);
     if (user?.interests && user.interests.length > 0) {
