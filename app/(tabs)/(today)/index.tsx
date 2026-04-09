@@ -291,8 +291,6 @@ function DoneScreen({
       <Text style={styles.doneTitle}>{headline}</Text>
       <Text style={styles.doneSubtitle}>You read what mattered today. See you tomorrow.</Text>
 
-      <StreakDots readDays={readDays} />
-
       <View style={styles.recapList}>
         {articles.map((article, idx) => {
           const canSave = !article.isSaved && todaySavesUsed < maxDailySaves;
@@ -808,7 +806,6 @@ const styles = StyleSheet.create({
     paddingTop: 40,
     paddingBottom: 48,
     paddingHorizontal: 16,
-    alignItems: 'center' as const,
   },
   doneCheckCircle: {
     width: 36,
@@ -820,6 +817,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
     marginBottom: 20,
+    alignSelf: 'flex-start' as const,
   },
   doneTitle: {
     fontSize: 26,
@@ -828,14 +826,12 @@ const styles = StyleSheet.create({
     fontFamily: 'CrimsonText_700Bold',
     marginBottom: 8,
     lineHeight: 32,
-    textAlign: 'center' as const,
   },
   doneSubtitle: {
     fontSize: 15,
     color: Colors.textSecondary,
     lineHeight: 22,
     marginBottom: 24,
-    textAlign: 'center' as const,
   },
   dotsRow: {
     flexDirection: 'row' as const,
@@ -933,12 +929,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.textMuted,
     marginBottom: 36,
-    textAlign: 'center' as const,
   },
   upsellBlock: {
-    alignItems: 'center' as const,
+    alignItems: 'flex-start' as const,
     gap: 8,
-    alignSelf: 'stretch' as const,
   },
   upsellButton: {
     borderWidth: 1.5,
@@ -946,8 +940,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 24,
-    alignSelf: 'stretch' as const,
-    alignItems: 'center' as const,
   },
   upsellButtonText: {
     fontSize: 15,
