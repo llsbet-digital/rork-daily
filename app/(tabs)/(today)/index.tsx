@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Animated,
   Image,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Sparkles, Bookmark, ThumbsUp, ThumbsDown, X, Check } from 'lucide-react-native';
@@ -187,6 +188,39 @@ function StreakDots({ readDays }: { readDays: string[] }) {
   );
 }
 
+function DailyInsightCard({
+  text,
+  isPremium,
+  currentStreak,
+  onUnlockPro,
+  fadeAnim,
+}: {
+  text: string;
+  isPremium: boolean;
+  currentStreak: number;
+  onUnlockPro: () => void;
+  fadeAnim: Animated.Value;
+}) {
+  const blurred = !isPremium && currentStreak >= 3;
+
+  return (
+    <Animated.View style={[styles.insightCard, { opacity: fadeAnim }]}>
+      <Text style={styles.insightLabel}>Today's reflection</Text>
+      {blurred ? (
+        <View style={styles.insightBlurContainer}>
+          <Text style={styles.insightText}>{text}</Text>
+          <BlurView intensity={14} tint="light" style={StyleSheet.absoluteFill} />
+          <TouchableOpacity style={styles.insightUnlockRow} onPress={onUnlockPro} activeOpacity={0.7}>
+            <Text style={styles.insightUnlockLink}>Unlock with Pro →</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <Text style={styles.insightText}>{text}</Text>
+      )}
+    </Animated.View>
+  );
+}
+
 function DoneScreen({
   articles,
   currentStreak,
@@ -194,6 +228,7 @@ function DoneScreen({
   isPremium,
   todaySavesUsed,
   maxDailySaves,
+  dailyInsight,
   onSave,
   onUnlockPro,
 }: {
@@ -203,6 +238,7 @@ function DoneScreen({
   isPremium: boolean;
   todaySavesUsed: number;
   maxDailySaves: number;
+  dailyInsight: string | null;
   onSave: (id: string) => void;
   onUnlockPro: () => void;
 }) {
@@ -212,8 +248,41 @@ function DoneScreen({
     currentStreak === 7 ? 'Seven days of reading intentionally.' :
     'Done for today. Well read.';
 
+  const screenFade = useRef(new Animated.Value(0)).current;
+  const insightFade = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(screenFade, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      // Insight fades in 200ms after screen completes
+      if (dailyInsight && (isPremium || currentStreak >= 3)) {
+        Animated.timing(insightFade, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }).start();
+      }
+    });
+  }, []);
+
+  // If insight arrives after mount (async), fade it in then too
+  useEffect(() => {
+    if (dailyInsight && (isPremium || currentStreak >= 3)) {
+      Animated.timing(insightFade, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [dailyInsight]);
+
+  const showInsight = !!dailyInsight && (isPremium || currentStreak >= 3);
+
   return (
-    <View style={styles.doneContainer}>
+    <Animated.View style={[styles.doneContainer, { opacity: screenFade }]}>
       <View style={styles.doneCheckCircle}>
         <Check size={18} color="#1A1A1A" strokeWidth={2.5} />
       </View>
@@ -247,6 +316,16 @@ function DoneScreen({
         })}
       </View>
 
+      {showInsight && (
+        <DailyInsightCard
+          text={dailyInsight!}
+          isPremium={isPremium}
+          currentStreak={currentStreak}
+          onUnlockPro={onUnlockPro}
+          fadeAnim={insightFade}
+        />
+      )}
+
       <Text style={styles.tomorrowNote}>Tomorrow's articles are ready at 7:00 am</Text>
 
       {!isPremium && (
@@ -257,7 +336,7 @@ function DoneScreen({
           <Text style={styles.upsellNote}>€3.99/month · cancel anytime</Text>
         </View>
       )}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -298,8 +377,10 @@ export default function TodayScreen() {
     feedbackArticle,
     articlesLoading,
     generateInsight,
+    generateDailyInsight,
     insights,
     generatingInsightId,
+    dailyInsight,
     resources,
     currentStreak,
     readDays,
@@ -321,6 +402,13 @@ export default function TodayScreen() {
       useNativeDriver: true,
     }).start();
   }, []);
+
+  // Trigger daily insight generation silently when all articles are read
+  useEffect(() => {
+    if (allRead) {
+      generateDailyInsight(dailyArticles);
+    }
+  }, [allRead]);
 
   useEffect(() => {
     if (dailyArticles.length > 0) {
@@ -419,6 +507,7 @@ export default function TodayScreen() {
                 isPremium={user?.isPremium ?? false}
                 todaySavesUsed={todaySavesUsed}
                 maxDailySaves={maxDailySaves}
+                dailyInsight={dailyInsight?.text ?? null}
                 onSave={toggleSaveArticle}
                 onUnlockPro={() => router.push('/premium' as any)}
               />
@@ -766,6 +855,43 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600' as const,
     color: Colors.primary,
+  },
+  insightCard: {
+    backgroundColor: Colors.cardBackground,
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  insightLabel: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.6,
+    marginBottom: 10,
+  },
+  insightText: {
+    fontSize: 15,
+    color: Colors.text,
+    lineHeight: 23,
+  },
+  insightBlurContainer: {
+    borderRadius: 8,
+    overflow: 'hidden' as const,
+  },
+  insightUnlockRow: {
+    position: 'absolute' as const,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    alignItems: 'center' as const,
+    paddingVertical: 8,
+  },
+  insightUnlockLink: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: '#7C3AED',
   },
   tomorrowNote: {
     fontSize: 13,

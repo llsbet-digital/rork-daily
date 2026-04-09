@@ -46,6 +46,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
   const [articlesLoading, setArticlesLoading] = useState<boolean>(false);
   const [insights, setInsights] = useState<ArticleInsight[]>([]);
   const [generatingInsightId, setGeneratingInsightId] = useState<string | null>(null);
+  const [dailyInsight, setDailyInsight] = useState<{ text: string; date: string } | null>(null);
   const [resources, setResources] = useState<NewsResource[]>([]);
   const [resourcesLoaded, setResourcesLoaded] = useState<boolean>(false);
   const [preferences, setPreferences] = useState<UserPreferences>({ topics: {} });
@@ -824,6 +825,52 @@ Respond in this exact JSON format:
     }
   }, [articles, libraryArticles, insights, persistInsights, user?.isPremium]);
 
+  const generateDailyInsight = useCallback(async (readArticles: Article[]) => {
+    const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
+    if (!apiKey || readArticles.length === 0) return;
+
+    const today = new Date().toISOString().slice(0, 10);
+    if (dailyInsight?.date === today) return; // already generated today
+
+    try {
+      const articleSummaries = readArticles
+        .map(a => `Title: ${a.title}\nSource: ${a.source}\nSummary: ${a.summary}`)
+        .join('\n\n');
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a thoughtful reading companion. From a set of articles a person just read, you write a single brief, considered observation — connecting a thread across them, surfacing a tension, or noting what they collectively reveal. Write like a smart friend reflecting after reading. 2-3 sentences maximum. No lists. No headers. Plain prose only.',
+            },
+            {
+              role: 'user',
+              content: `Here are the articles I read today:\n\n${articleSummaries}\n\nWhat's the one thing worth sitting with from today's reading?`,
+            },
+          ],
+          temperature: 0.8,
+          max_tokens: 120,
+        }),
+      });
+
+      if (!response.ok) return;
+      const data = await response.json();
+      const text = data.choices?.[0]?.message?.content?.trim();
+      if (text) {
+        setDailyInsight({ text, date: today });
+      }
+    } catch {
+      // Silence is better than a broken promise
+    }
+  }, [dailyInsight]);
+
   const updateProfileName = useCallback(async (name: string) => {
     if (!user || !session?.user?.id) return;
 
@@ -892,8 +939,10 @@ Respond in this exact JSON format:
     updateInterests,
     updateProfileName,
     generateInsight,
+    generateDailyInsight,
     insights,
     generatingInsightId,
+    dailyInsight,
     resources,
     addResource,
     removeResource,
