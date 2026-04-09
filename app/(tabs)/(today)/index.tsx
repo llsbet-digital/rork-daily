@@ -20,6 +20,7 @@ import Colors, { CARD_COLORS } from '@/constants/colors';
 import { useApp } from '@/providers/AppProvider';
 import { Article } from '@/types';
 import { toDateString } from '@/lib/streak';
+import SaveLimitSheet from '@/components/SaveLimitSheet';
 
 function ArticleCard({ article, onSave, onRead, onFeedback, onGenerateInsight, index, isGenerating, hasInsight, showTooltip, onDismissTooltip }: {
   article: Article;
@@ -392,6 +393,7 @@ export default function TodayScreen() {
 
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const [showSparkleTooltip, setShowSparkleTooltip] = useState(false);
+  const [saveLimitArticle, setSaveLimitArticle] = useState<Article | null>(null);
 
   const allRead = dailyArticles.length > 0 && dailyArticles.every(a => a.isRead);
 
@@ -409,6 +411,27 @@ export default function TodayScreen() {
       generateDailyInsight(dailyArticles);
     }
   }, [allRead]);
+
+  const SAVE_LIMIT_DISMISSED_KEY = 'save_limit_dismissed_date';
+
+  const handleSaveWithLimit = useCallback(async (article: Article) => {
+    if (currentStreak < 3) return; // Suppress on day 1-2
+    const today = toDateString(new Date());
+    const dismissed = await AsyncStorage.getItem(SAVE_LIMIT_DISMISSED_KEY);
+    if (dismissed === today) return; // Already dismissed today
+    setSaveLimitArticle(article);
+  }, [currentStreak]);
+
+  const handleSaveLimitDismiss = useCallback(async () => {
+    const today = toDateString(new Date());
+    await AsyncStorage.setItem(SAVE_LIMIT_DISMISSED_KEY, today);
+    setSaveLimitArticle(null);
+  }, []);
+
+  const handleSaveLimitUnlockPro = useCallback(() => {
+    setSaveLimitArticle(null);
+    router.push('/premium' as any);
+  }, [router]);
 
   useEffect(() => {
     if (dailyArticles.length > 0) {
@@ -508,7 +531,7 @@ export default function TodayScreen() {
                 todaySavesUsed={todaySavesUsed}
                 maxDailySaves={maxDailySaves}
                 dailyInsight={dailyInsight?.text ?? null}
-                onSave={toggleSaveArticle}
+                onSave={id => toggleSaveArticle(id, handleSaveWithLimit)}
                 onUnlockPro={() => router.push('/premium' as any)}
               />
             ) : (
@@ -517,7 +540,7 @@ export default function TodayScreen() {
                   key={article.id}
                   article={article}
                   index={idx}
-                  onSave={() => toggleSaveArticle(article.id)}
+                  onSave={() => toggleSaveArticle(article.id, handleSaveWithLimit)}
                   onRead={() => markArticleRead(article.id)}
                   onFeedback={(type) => feedbackArticle(article.id, type)}
                   onGenerateInsight={() => handleGenerateInsight(article.id)}
@@ -532,6 +555,14 @@ export default function TodayScreen() {
 
         </ScrollView>
       </Animated.View>
+
+      {saveLimitArticle && (
+        <SaveLimitSheet
+          article={saveLimitArticle}
+          onUnlockPro={handleSaveLimitUnlockPro}
+          onDismiss={handleSaveLimitDismiss}
+        />
+      )}
     </View>
   );
 }

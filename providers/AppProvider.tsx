@@ -612,7 +612,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
     }
   }, [session?.user?.id]);
 
-  const toggleSaveArticle = useCallback(async (articleId: string) => {
+  const toggleSaveArticle = useCallback(async (
+    articleId: string,
+    onSaveLimit?: (article: Article) => void,
+  ) => {
     if (!session?.user?.id) {
       console.log('[App] Cannot save article: not authenticated');
       Alert.alert('Sign In Required', 'Please sign in to save articles.');
@@ -632,6 +635,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
     if (!currentlySaved && todaySavesUsed >= maxDailySaves) {
       console.log('[App] Daily save limit reached:', todaySavesUsed, '/', maxDailySaves);
+      if (!user?.isPremium && onSaveLimit) {
+        onSaveLimit(article);
+        return;
+      }
       Alert.alert(
         'Daily Save Limit',
         user?.isPremium
