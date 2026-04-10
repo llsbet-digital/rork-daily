@@ -11,9 +11,10 @@ import {
 import { BlurView } from 'expo-blur';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Sparkles, Bookmark, ThumbsUp, ThumbsDown, X, Check } from 'lucide-react-native';
+import { Sparkles, Bookmark, ThumbsUp, ThumbsDown, X } from 'lucide-react-native';
+import InsightModal from '@/components/InsightModal';
+import { ArticleInsight } from '@/types';
 import * as Haptics from 'expo-haptics';
-import * as WebBrowser from 'expo-web-browser';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import Colors, { CARD_COLORS } from '@/constants/colors';
@@ -22,7 +23,7 @@ import { Article } from '@/types';
 import { toDateString } from '@/lib/streak';
 import SaveLimitSheet from '@/components/SaveLimitSheet';
 
-function ArticleCard({ article, onSave, onRead, onFeedback, onGenerateInsight, index, isGenerating, hasInsight, showTooltip, onDismissTooltip }: {
+function ArticleCard({ article, onSave, onRead, onFeedback, onGenerateInsight, index, isGenerating, hasInsight }: {
   article: Article;
   onSave: () => void;
   onRead: () => void;
@@ -31,10 +32,9 @@ function ArticleCard({ article, onSave, onRead, onFeedback, onGenerateInsight, i
   index: number;
   isGenerating: boolean;
   hasInsight: boolean;
-  showTooltip?: boolean;
-  onDismissTooltip?: () => void;
 }) {
   const router = useRouter();
+  const bgColor = CARD_COLORS[index % CARD_COLORS.length];
   const spinAnim = React.useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -49,127 +49,108 @@ function ArticleCard({ article, onSave, onRead, onFeedback, onGenerateInsight, i
     }
   }, [isGenerating]);
 
-  const spin = spinAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
-  });
-  const bgColor = CARD_COLORS[index % CARD_COLORS.length];
+  const spin = spinAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
 
-  const handlePress = useCallback(async () => {
+  const handlePress = useCallback(() => {
     onRead();
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (article.url && article.url !== '#' && article.url.startsWith('http')) {
-      try {
-        await WebBrowser.openBrowserAsync(article.url, {
-          presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
-          controlsColor: '#1A1A1A',
-          toolbarColor: '#FFFFFF',
-        });
-      } catch (err) {
-        console.log('[Article] Failed to open in-app browser:', err);
-        router.push({ pathname: '/article', params: { id: article.id } } as any);
-      }
-    } else {
-      router.push({ pathname: '/article', params: { id: article.id } } as any);
-    }
-  }, [onRead, article.id, article.url, router]);
+    router.push({ pathname: '/article', params: { id: article.id } } as any);
+  }, [onRead, article.id, router]);
 
   return (
-    <TouchableOpacity
-      style={[styles.articleCard, { backgroundColor: bgColor }]}
-      activeOpacity={0.85}
-      onPress={handlePress}
-    >
-      <View style={styles.cardTopRow}>
-        <Text style={styles.articleCategory}>{article.category}</Text>
-        <View style={styles.cardTopRight}>
-          <TouchableOpacity
-            onPress={() => {
-              onSave();
-              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            }}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Bookmark
-              size={18}
-              color={article.isSaved ? '#1A1A1A' : 'rgba(0,0,0,0.35)'}
-              fill={article.isSaved ? Colors.primary : 'transparent'}
-              strokeWidth={article.isSaved ? 2 : 1.5}
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <Text style={styles.articleTitle}>{article.title}</Text>
-      <Text style={styles.articleSummary} numberOfLines={3}>{article.summary}</Text>
-
-      <View style={styles.cardBottom}>
-        <View style={styles.feedbackRow}>
-          <TouchableOpacity
-            onPress={() => {
-              onFeedback('up');
-              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            }}
-            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-            style={[styles.feedbackBtn, article.feedback === 'up' && styles.feedbackBtnActive]}
-          >
-            <ThumbsUp
-              size={16}
-              color={article.feedback === 'up' ? '#1A1A1A' : 'rgba(0,0,0,0.3)'}
-              fill={article.feedback === 'up' ? '#1A1A1A' : 'transparent'}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => {
-              onFeedback('down');
-              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            }}
-            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-            style={[styles.feedbackBtn, article.feedback === 'down' && styles.feedbackBtnActive]}
-          >
-            <ThumbsDown
-              size={16}
-              color={article.feedback === 'down' ? '#E05555' : 'rgba(0,0,0,0.3)'}
-              fill={article.feedback === 'down' ? '#E05555' : 'transparent'}
-            />
-          </TouchableOpacity>
-        </View>
-        <View>
-          {showTooltip && (
-            <View style={styles.tooltipContainer} pointerEvents="box-none">
-              <TouchableOpacity
-                style={styles.tooltipPill}
-                onPress={onDismissTooltip}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.tooltipText}>Tap to generate an insight</Text>
-              </TouchableOpacity>
-              <View style={styles.tooltipArrow} />
-            </View>
-          )}
-          <TouchableOpacity
-            style={[styles.sparkButton, hasInsight && styles.sparkButtonActive]}
-            onPress={() => {
-              if (!isGenerating) {
-                onGenerateInsight();
+    <View style={[styles.articleCard, { backgroundColor: bgColor }]}>
+      <TouchableOpacity activeOpacity={0.85} onPress={handlePress} style={styles.cardPressable}>
+        <View style={styles.cardTopRow}>
+          <Text style={styles.articleCategory}>{article.category}</Text>
+          <View style={styles.cardTopRight}>
+            <TouchableOpacity
+              onPress={() => {
+                onSave();
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              }
-              onDismissTooltip?.();
-            }}
-            activeOpacity={0.7}
-            disabled={isGenerating}
-          >
-            {isGenerating ? (
-              <Animated.View style={{ transform: [{ rotate: spin }] }}>
-                <Sparkles size={16} color={'#1A1A1A'} />
-              </Animated.View>
-            ) : (
-              <Sparkles size={16} color={hasInsight ? Colors.white : '#1A1A1A'} fill={hasInsight ? Colors.white : 'transparent'} />
-            )}
-          </TouchableOpacity>
+              }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Bookmark
+                size={18}
+                color={article.isSaved ? '#1A1A1A' : 'rgba(0,0,0,0.35)'}
+                fill={article.isSaved ? Colors.primary : 'transparent'}
+                strokeWidth={article.isSaved ? 2 : 1.5}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-    </TouchableOpacity>
+
+        <Text style={styles.articleTitle}>{article.title}</Text>
+        <Text style={styles.articleSummary} numberOfLines={3}>{article.summary}</Text>
+
+        <View style={styles.cardBottom}>
+          <View style={styles.feedbackRow}>
+            <TouchableOpacity
+              onPress={() => {
+                onFeedback('up');
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              style={[styles.feedbackBtn, article.feedback === 'up' && styles.feedbackBtnActive]}
+            >
+              <ThumbsUp
+                size={16}
+                color={article.feedback === 'up' ? '#1A1A1A' : 'rgba(0,0,0,0.3)'}
+                fill={article.feedback === 'up' ? '#1A1A1A' : 'transparent'}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                onFeedback('down');
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              style={[styles.feedbackBtn, article.feedback === 'down' && styles.feedbackBtnActive]}
+            >
+              <ThumbsDown
+                size={16}
+                color={article.feedback === 'down' ? '#E05555' : 'rgba(0,0,0,0.3)'}
+                fill={article.feedback === 'down' ? '#E05555' : 'transparent'}
+              />
+            </TouchableOpacity>
+          </View>
+          {!hasInsight && (
+            <TouchableOpacity
+              style={styles.sparkButton}
+              onPress={() => {
+                if (!isGenerating) {
+                  onGenerateInsight();
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                }
+              }}
+              activeOpacity={0.7}
+              disabled={isGenerating}
+            >
+              {isGenerating ? (
+                <Animated.View style={{ transform: [{ rotate: spin }] }}>
+                  <Sparkles size={16} color="#1A1A1A" />
+                </Animated.View>
+              ) : (
+                <Sparkles size={16} color="#1A1A1A" />
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
+      </TouchableOpacity>
+
+      {hasInsight && (
+        <TouchableOpacity
+          style={styles.insightEdition}
+          onPress={() => {
+            onGenerateInsight();
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          }}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.insightEditionText}>View insights</Text>
+        </TouchableOpacity>
+      )}
+    </View>
   );
 }
 
@@ -284,37 +265,50 @@ function DoneScreen({
 
   return (
     <Animated.View style={[styles.doneContainer, { opacity: screenFade }]}>
-      <View style={styles.doneCheckCircle}>
-        <Check size={18} color="#1A1A1A" strokeWidth={2.5} />
-      </View>
-
       <Text style={styles.doneTitle}>{headline}</Text>
-      <Text style={styles.doneSubtitle}>You read what mattered today. See you tomorrow.</Text>
+      <Text style={styles.doneSubtitle}>Tomorrow's articles are ready at 7:00 am.</Text>
 
-      <View style={styles.recapList}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.recapScroll}
+        style={styles.recapScrollView}
+      >
         {articles.map((article, idx) => {
           const canSave = !article.isSaved && todaySavesUsed < maxDailySaves;
           const bgColor = CARD_COLORS[idx % CARD_COLORS.length];
           return (
             <View key={article.id} style={[styles.recapCard, { backgroundColor: bgColor }]}>
-              <View style={styles.recapCardContent}>
-                <Text style={styles.recapSource}>{article.source}</Text>
-                <Text style={styles.recapTitle} numberOfLines={2}>{article.title}</Text>
+              <View style={styles.recapCardTop}>
+                <View style={styles.recapCategoryPill}>
+                  <Text style={styles.recapCategoryText} numberOfLines={1}>{article.category}</Text>
+                </View>
+                {canSave || article.isSaved ? (
+                  <TouchableOpacity
+                    style={styles.recapBookmarkBtn}
+                    onPress={() => !article.isSaved && onSave(article.id)}
+                    activeOpacity={article.isSaved ? 1 : 0.7}
+                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                  >
+                    <Bookmark
+                      size={16}
+                      color={article.isSaved ? '#1A1A1A' : 'rgba(0,0,0,0.4)'}
+                      fill={article.isSaved ? Colors.primary : 'transparent'}
+                      strokeWidth={article.isSaved ? 2 : 1.5}
+                    />
+                  </TouchableOpacity>
+                ) : null}
               </View>
-              {article.isSaved ? (
-                <Text style={styles.recapSavedLabel}>Saved</Text>
-              ) : canSave ? (
-                <TouchableOpacity
-                  onPress={() => onSave(article.id)}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <Text style={styles.recapSaveBtn}>Save</Text>
-                </TouchableOpacity>
-              ) : null}
+
+              <View style={styles.recapCardBottom}>
+                <Text style={styles.recapTitle} numberOfLines={3}>{article.title}</Text>
+                <Text style={styles.recapSource} numberOfLines={1}>{article.source}</Text>
+                <Text style={styles.recapReadTime}>{article.readTime} min read</Text>
+              </View>
             </View>
           );
         })}
-      </View>
+      </ScrollView>
 
       {showInsight && (
         <DailyInsightCard
@@ -326,13 +320,12 @@ function DoneScreen({
         />
       )}
 
-      <Text style={styles.tomorrowNote}>Tomorrow's articles are ready at 7:00 am</Text>
-
       {!isPremium && (
         <View style={styles.upsellBlock}>
           <TouchableOpacity style={styles.upsellButton} onPress={onUnlockPro} activeOpacity={0.75}>
             <Text style={styles.upsellButtonText}>Unlock Pro</Text>
           </TouchableOpacity>
+          <Text style={styles.upsellNote}>Read more and save more.</Text>
           <Text style={styles.upsellNote}>€3.99/month · cancel anytime</Text>
         </View>
       )}
@@ -391,8 +384,8 @@ export default function TodayScreen() {
   } = useApp();
 
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
-  const [showSparkleTooltip, setShowSparkleTooltip] = useState(false);
   const [saveLimitArticle, setSaveLimitArticle] = useState<Article | null>(null);
+  const [insightToShow, setInsightToShow] = useState<ArticleInsight | null>(null);
 
   const allRead = dailyArticles.length > 0 && dailyArticles.every(a => a.isRead);
 
@@ -432,23 +425,12 @@ export default function TodayScreen() {
     router.push('/premium' as any);
   }, [router]);
 
-  useEffect(() => {
-    if (dailyArticles.length > 0) {
-      AsyncStorage.getItem('has_seen_sparkle_tooltip').then(val => {
-        if (!val) setShowSparkleTooltip(true);
-      });
-    }
-  }, [dailyArticles.length]);
-
-  const dismissTooltip = useCallback(() => {
-    setShowSparkleTooltip(false);
-    AsyncStorage.setItem('has_seen_sparkle_tooltip', '1').catch(() => {});
-  }, []);
-
   const handleGenerateInsight = useCallback(async (articleId: string) => {
     const result = await generateInsight(articleId);
     if (result === 'premium_required') {
       router.push('/premium' as any);
+    } else if (result) {
+      setInsightToShow(result);
     }
   }, [generateInsight, router]);
 
@@ -488,69 +470,69 @@ export default function TodayScreen() {
             </View>
           )}
 
-          <View style={styles.articlesSection}>
-            {articlesLoading && dailyArticles.length === 0 ? (
-              <>
-                <ArticleSkeleton index={0} />
-                <ArticleSkeleton index={1} />
-                <ArticleSkeleton index={2} />
-              </>
-            ) : !resources || resources.length === 0 ? (
-              <View style={styles.emptyState}>
-                <Image
-                  source={require('@/assets/images/Resources.png')}
-                  style={styles.emptyImage}
-                  resizeMode="contain"
-                />
-                <Text style={styles.emptyTitle}>No sources added</Text>
-                <Text style={styles.emptySubtitle}>
-                  Add your favorite websites and blogs so Paprr knows where to find your articles.
-                </Text>
-                <TouchableOpacity
-                  style={styles.addSourcesButton}
-                  onPress={() => router.push('/manage-resources' as any)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.addSourcesButtonText}>Add Sources</Text>
-                </TouchableOpacity>
-              </View>
-            ) : dailyArticles.length === 0 && !articlesLoading ? (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyTitle}>No articles yet</Text>
-                <Text style={styles.emptySubtitle}>
-                  Pull down to refresh, or update your sources in Settings.
-                </Text>
-              </View>
-            ) : allRead ? (
-              <DoneScreen
-                articles={dailyArticles}
-                currentStreak={currentStreak}
-                readDays={readDays}
-                isPremium={user?.isPremium ?? false}
-                todaySavesUsed={todaySavesUsed}
-                maxDailySaves={maxDailySaves}
-                dailyInsight={dailyInsight?.text ?? null}
-                onSave={id => toggleSaveArticle(id, handleSaveWithLimit)}
-                onUnlockPro={() => router.push('/premium' as any)}
-              />
-            ) : (
-              dailyArticles.map((article, idx) => (
-                <ArticleCard
-                  key={article.id}
-                  article={article}
-                  index={idx}
-                  onSave={() => toggleSaveArticle(article.id, handleSaveWithLimit)}
-                  onRead={() => markArticleRead(article.id)}
-                  onFeedback={(type) => feedbackArticle(article.id, type)}
-                  onGenerateInsight={() => handleGenerateInsight(article.id)}
-                  isGenerating={generatingInsightId === article.id}
-                  hasInsight={insights.some(i => i.articleId === article.id)}
-                  showTooltip={idx === 0 && showSparkleTooltip}
-                  onDismissTooltip={dismissTooltip}
-                />
-              ))
-            )}
-          </View>
+          {allRead && resources && resources.length > 0 && dailyArticles.length > 0 ? (
+            <DoneScreen
+              articles={dailyArticles}
+              currentStreak={currentStreak}
+              readDays={readDays}
+              isPremium={user?.isPremium ?? false}
+              todaySavesUsed={todaySavesUsed}
+              maxDailySaves={maxDailySaves}
+              dailyInsight={dailyInsight?.text ?? null}
+              onSave={id => toggleSaveArticle(id, handleSaveWithLimit)}
+              onUnlockPro={() => router.push('/premium' as any)}
+            />
+          ) : (
+            <View style={styles.articlesSection}>
+              {articlesLoading && dailyArticles.length === 0 ? (
+                <>
+                  <ArticleSkeleton index={0} />
+                  <ArticleSkeleton index={1} />
+                  <ArticleSkeleton index={2} />
+                </>
+              ) : !resources || resources.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Image
+                    source={require('@/assets/images/Resources.png')}
+                    style={styles.emptyImage}
+                    resizeMode="contain"
+                  />
+                  <Text style={styles.emptyTitle}>No sources added</Text>
+                  <Text style={styles.emptySubtitle}>
+                    Add your favorite websites and blogs so Paprr knows where to find your articles.
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.addSourcesButton}
+                    onPress={() => router.push('/manage-resources' as any)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.addSourcesButtonText}>Add Sources</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : dailyArticles.length === 0 && !articlesLoading ? (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyTitle}>No articles yet</Text>
+                  <Text style={styles.emptySubtitle}>
+                    Pull down to refresh, or update your sources in Settings.
+                  </Text>
+                </View>
+              ) : (
+                dailyArticles.map((article, idx) => (
+                  <ArticleCard
+                    key={article.id}
+                    article={article}
+                    index={idx}
+                    onSave={() => toggleSaveArticle(article.id, handleSaveWithLimit)}
+                    onRead={() => markArticleRead(article.id)}
+                    onFeedback={(type) => feedbackArticle(article.id, type)}
+                    onGenerateInsight={() => handleGenerateInsight(article.id)}
+                    isGenerating={generatingInsightId === article.id}
+                    hasInsight={insights.some(i => i.articleId === article.id)}
+                  />
+                ))
+              )}
+            </View>
+          )}
 
         </ScrollView>
       </Animated.View>
@@ -560,6 +542,13 @@ export default function TodayScreen() {
           article={saveLimitArticle}
           onUnlockPro={handleSaveLimitUnlockPro}
           onDismiss={handleSaveLimitDismiss}
+        />
+      )}
+
+      {insightToShow && (
+        <InsightModal
+          insight={insightToShow}
+          onDismiss={() => setInsightToShow(null)}
         />
       )}
     </View>
@@ -575,7 +564,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 12,
   },
   avatarCircle: {
@@ -607,17 +596,20 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '700' as const,
     color: Colors.text,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     marginBottom: 16,
     marginTop: 4,
     fontFamily: 'CrimsonText_700Bold',
   },
   articlesSection: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     gap: 16,
   },
   articleCard: {
     borderRadius: 20,
+    overflow: 'hidden',
+  },
+  cardPressable: {
     padding: 22,
     minHeight: 200,
   },
@@ -683,38 +675,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  sparkButtonActive: {
-    backgroundColor: Colors.primary,
-  },
-  tooltipContainer: {
-    position: 'absolute' as const,
-    bottom: 48,
-    right: 0,
+  insightEdition: {
+    backgroundColor: 'rgba(255,255,255,0.35)',
+    paddingVertical: 13,
     alignItems: 'center',
-    zIndex: 10,
   },
-  tooltipPill: {
-    backgroundColor: Colors.dark,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  tooltipText: {
-    color: Colors.white,
-    fontSize: 12,
+  insightEditionText: {
+    fontSize: 14,
     fontWeight: '500' as const,
-  },
-  tooltipArrow: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: 6,
-    borderRightWidth: 6,
-    borderTopWidth: 6,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderTopColor: Colors.dark,
-    marginRight: 14,
-    alignSelf: 'flex-end' as const,
+    color: Colors.text,
+    letterSpacing: -0.1,
   },
   skeletonCategory: {
     width: 80,
@@ -747,7 +717,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 60,
   },
   emptyTitle: {
@@ -783,7 +753,7 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
   },
   graceBanner: {
-    marginHorizontal: 20,
+    marginHorizontal: 16,
     marginBottom: 12,
     backgroundColor: Colors.primaryLight,
     borderRadius: 14,
@@ -805,19 +775,6 @@ const styles = StyleSheet.create({
   doneContainer: {
     paddingTop: 40,
     paddingBottom: 48,
-    paddingHorizontal: 16,
-  },
-  doneCheckCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.primary,
-    borderWidth: 1.5,
-    borderColor: '#1A1A1A',
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
-    marginBottom: 20,
-    alignSelf: 'flex-start' as const,
   },
   doneTitle: {
     fontSize: 26,
@@ -826,12 +783,14 @@ const styles = StyleSheet.create({
     fontFamily: 'CrimsonText_700Bold',
     marginBottom: 8,
     lineHeight: 32,
+    paddingHorizontal: 16,
   },
   doneSubtitle: {
     fontSize: 15,
     color: Colors.textSecondary,
     lineHeight: 22,
     marginBottom: 24,
+    paddingHorizontal: 16,
   },
   dotsRow: {
     flexDirection: 'row' as const,
@@ -850,49 +809,73 @@ const styles = StyleSheet.create({
   dotEmpty: {
     backgroundColor: Colors.border,
   },
-  recapList: {
-    gap: 12,
+  recapScrollView: {
     marginBottom: 28,
-    alignSelf: 'stretch' as const,
+  },
+  recapScroll: {
+    paddingHorizontal: 16,
+    gap: 12,
   },
   recapCard: {
+    width: 160,
+    height: 220,
     borderRadius: 20,
-    padding: 20,
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: 12,
-    minHeight: 90,
+    padding: 16,
+    justifyContent: 'space-between' as const,
   },
-  recapCardContent: {
-    flex: 1,
+  recapCardTop: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'flex-start' as const,
+  },
+  recapCategoryPill: {
+    backgroundColor: 'rgba(0,0,0,0.08)',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    flexShrink: 1,
+    marginRight: 6,
+  },
+  recapCategoryText: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: 'rgba(0,0,0,0.5)',
+    letterSpacing: 0.3,
+  },
+  recapBookmarkBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255,255,255,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  recapCardBottom: {
+    gap: 4,
+  },
+  recapTitle: {
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: Colors.text,
+    lineHeight: 20,
+    letterSpacing: -0.2,
+    fontFamily: 'CrimsonText_700Bold',
+    marginBottom: 4,
   },
   recapSource: {
     fontSize: 12,
     color: 'rgba(0,0,0,0.45)',
-    marginBottom: 5,
   },
-  recapTitle: {
-    fontSize: 16,
-    fontWeight: '700' as const,
-    color: Colors.text,
-    lineHeight: 22,
-    letterSpacing: -0.3,
-    fontFamily: 'CrimsonText_700Bold',
-  },
-  recapSavedLabel: {
-    fontSize: 13,
+  recapReadTime: {
+    fontSize: 12,
     color: 'rgba(0,0,0,0.35)',
-  },
-  recapSaveBtn: {
-    fontSize: 13,
-    fontWeight: '600' as const,
-    color: 'rgba(0,0,0,0.6)',
   },
   insightCard: {
     backgroundColor: Colors.cardBackground,
     borderRadius: 16,
     padding: 18,
     marginBottom: 24,
+    marginHorizontal: 16,
     borderWidth: 1,
     borderColor: Colors.border,
   },
@@ -929,17 +912,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.textMuted,
     marginBottom: 36,
+    paddingHorizontal: 16,
   },
   upsellBlock: {
-    alignItems: 'flex-start' as const,
-    gap: 8,
+    gap: 6,
+    paddingHorizontal: 16,
   },
   upsellButton: {
     borderWidth: 1.5,
     borderColor: Colors.text,
     borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
+    paddingVertical: 14,
+    alignItems: 'center' as const,
+    marginBottom: 2,
   },
   upsellButtonText: {
     fontSize: 15,
@@ -947,7 +932,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   upsellNote: {
-    fontSize: 11,
+    fontSize: 13,
     color: Colors.textMuted,
   },
 });

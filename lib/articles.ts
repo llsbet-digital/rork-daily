@@ -104,16 +104,21 @@ ALLOWED SOURCES (domains): ${domainList}
 USER'S TOPICS OF INTEREST: ${interestList}
 ${prefSummary ? `\n${prefSummary}\n` : ''}
 
+DIVERSITY RULES — these are the most important rules:
+- Every article MUST cover a distinctly different subject, angle, or story. No two articles can be about the same topic or event.
+- Do NOT return multiple articles that all explain the same concept (e.g. "what is X", "intro to X", "X explained"). Each article must stand on its own as a unique piece of news, analysis, or insight.
+- Spread across as many different topics as possible. If the user has multiple interests, pick one article per interest before repeating any interest.
+- If an interest has no recent articles on the allowed sources, skip it and pick a different topic — never pad with similar-subject articles to hit the count.
+
 INSTRUCTIONS:
-1. For each allowed domain, search for articles matching the user's topics of interest.
+1. Search each allowed domain for recent articles matching the user's topics of interest.
 2. ONLY return articles that actually exist on the allowed domains. Do NOT use any other websites.
-3. If a topic is NOT covered by any of the allowed sources, DO NOT search elsewhere. Instead, find MORE articles on topics that ARE covered by the allowed sources.
-4. For example: if the user has interests [Tech, Sports, Politics] but the only source is techcrunch.com which only covers Tech — return ${count} Tech articles from techcrunch.com. Do NOT look for Sports or Politics on other sites.
-5. Spread articles across all allowed domains when possible, but it is perfectly fine to have multiple articles from the same domain if there are few sources.
-6. You MUST return EXACTLY ${count} articles. Fill the count by finding additional articles on covered topics from the allowed domains.
-7. Every article URL MUST start with https:// and belong to one of: ${domainList}
-8. NEVER fabricate URLs. Only return articles you found via web search that actually exist.
-9. NEVER return a URL from any domain not listed above.
+3. If a topic is NOT covered by any of the allowed sources, find articles on a different covered topic instead. Never search outside the allowed domains.
+4. Spread articles across all allowed domains when possible, but multiple articles from one domain are fine if sources are limited.
+5. You MUST return EXACTLY ${count} articles. Use the diversity rules above to fill the count without repeating subjects.
+6. Every article URL MUST start with https:// and belong to one of: ${domainList}
+7. NEVER fabricate URLs. Only return articles you found via web search that actually exist.
+8. NEVER return a URL from any domain not listed above.
 
 For each article provide:
 - title: the exact article title as it appears on the site

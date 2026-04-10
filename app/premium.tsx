@@ -8,6 +8,8 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
+  Linking,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -118,6 +120,21 @@ export default function PremiumScreen() {
     restoreMutation.mutate();
   }, [restoreMutation]);
 
+  const handleManageSubscription = React.useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const url = Platform.OS === 'ios'
+      ? 'itms-apps://apps.apple.com/account/subscriptions'
+      : 'https://play.google.com/store/account/subscriptions';
+    Linking.openURL(url).catch(() => {
+      Alert.alert(
+        'Manage Subscription',
+        Platform.OS === 'ios'
+          ? 'Go to Settings → Apple ID → Subscriptions to manage or cancel your plan.'
+          : 'Go to Google Play → Subscriptions to manage or cancel your plan.'
+      );
+    });
+  }, []);
+
   const monthlyPrice = monthlyPackage?.product?.priceString ?? '$3.99';
   const yearlyPrice = yearlyPackage?.product?.priceString ?? '$29.99';
   const isProcessing = purchaseMutation.isPending || restoreMutation.isPending;
@@ -179,6 +196,16 @@ export default function PremiumScreen() {
                 <Check size={18} color={Colors.success} />
                 <Text style={styles.activeText}>Premium Active</Text>
               </View>
+              <Text style={styles.manageNote}>
+                To cancel or change your plan, manage your subscription through {Platform.OS === 'ios' ? 'the App Store' : 'Google Play'}.
+              </Text>
+              <TouchableOpacity
+                style={styles.manageButton}
+                onPress={handleManageSubscription}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.manageButtonText}>Manage Subscription</Text>
+              </TouchableOpacity>
             </View>
           ) : (
             <>
@@ -580,7 +607,9 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
   },
   activeContainer: {
+    width: '100%',
     marginBottom: 16,
+    gap: 16,
   },
   activeBadge: {
     flexDirection: 'row',
@@ -595,6 +624,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600' as const,
     color: Colors.success,
+  },
+  manageNote: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  manageButton: {
+    borderWidth: 1.5,
+    borderColor: Colors.inputBorder,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  manageButtonText: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: Colors.text,
   },
   trialText: {
     fontSize: 14,

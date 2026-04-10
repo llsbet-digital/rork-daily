@@ -17,6 +17,13 @@ const STORAGE_KEYS = {
   PREFERENCES: 'user_topic_preferences',
 } as const;
 
+function getTodayKey(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+const READ_IDS_KEY = (date: string) => `read_article_ids_${date}`;
+
 function profileToUser(profile: UserProfile): User {
   return {
     id: profile.id,
@@ -308,25 +315,94 @@ export const [AppProvider, useApp] = createContextHook(() => {
     loadPreferences();
   }, [loadPreferences]);
 
-  const loadArticlesForUser = useCallback(async (interests: string[], isPremium: boolean, resourceList?: NewsResource[]) => {
+  const loadArticlesForUser = useCallback(async (interests: string[], isPremium: boolean, resourceList?: NewsResource[], userId?: string) => {
     if (!interests || interests.length === 0) return;
     if (!resourceList || resourceList.length === 0) {
       setArticles([]);
       return;
     }
     const count = isPremium ? 5 : 3;
+    const today = getTodayKey();
     setArticlesLoading(true);
+
     try {
-      const fetched = await fetchDailyArticles(interests, count, resourceList, preferences);
-      setArticles(fetched);
-      console.log('[App] Loaded', fetched.length, 'articles');
+      let baseArticles: Article[] | null = null;
+
+      // 1. Supabase — authoritative cross-device source
+      if (userId) {
+        const { data, error } = await supabase
+          .from('daily_articles')
+          .select('articles')
+          .eq('user_id', userId)
+          .eq('date', today)
+          .single();
+
+        if (!error && data?.articles) {
+          baseArticles = data.articles as Article[];
+          console.log('[App] Loaded', baseArticles.length, 'articles from Supabase');
+          // Keep local cache warm
+          await AsyncStorage.setItem(STORAGE_KEYS.ARTICLES, JSON.stringify(baseArticles));
+          await AsyncStorage.setItem('daily_articles_date', today);
+        }
+      }
+
+      // 2. Local cache fallback (offline / Supabase miss)
+      if (!baseArticles) {
+        const cachedDate = await AsyncStorage.getItem('daily_articles_date');
+        const cachedRaw = await AsyncStorage.getItem(STORAGE_KEYS.ARTICLES);
+        if (cachedDate === today && cachedRaw) {
+          baseArticles = JSON.parse(cachedRaw) as Article[];
+          console.log('[App] Loaded', baseArticles.length, 'articles from local cache');
+          // Back-fill Supabase so other devices can pick them up
+          if (userId && baseArticles.length > 0) {
+            supabase.from('daily_articles').upsert({
+              user_id: userId,
+              date: today,
+              articles: baseArticles.map(a => ({ ...a, isRead: false, isSaved: false })),
+            }).then(({ error }) => {
+              if (error) console.log('[App] Back-fill to Supabase failed:', error.message);
+            });
+          }
+        }
+      }
+
+      // 3. Fetch fresh from OpenAI
+      if (!baseArticles || baseArticles.length === 0) {
+        console.log('[App] No cached articles — fetching from OpenAI');
+        baseArticles = await fetchDailyArticles(interests, count, resourceList, preferences);
+        if (userId && baseArticles.length > 0) {
+          const { error } = await supabase.from('daily_articles').upsert({
+            user_id: userId,
+            date: today,
+            articles: baseArticles.map(a => ({ ...a, isRead: false, isSaved: false })),
+          });
+          if (error) console.log('[App] Failed to save articles to Supabase:', error.message);
+          else console.log('[App] Saved', baseArticles.length, 'articles to Supabase for', today);
+          await AsyncStorage.setItem(STORAGE_KEYS.ARTICLES, JSON.stringify(baseArticles));
+          await AsyncStorage.setItem('daily_articles_date', today);
+        }
+      }
+
+      // Merge with per-device read state
+      const readIdsRaw = await AsyncStorage.getItem(READ_IDS_KEY(today));
+      const readIds = new Set<string>(readIdsRaw ? JSON.parse(readIdsRaw) : []);
+
+      const articlesWithState = (baseArticles ?? []).map(a => ({
+        ...a,
+        isRead: readIds.has(a.id),
+        isSaved: false, // isSaved applied via savedArticleIds in dailyArticles memo
+        feedback: a.feedback ?? null,
+      }));
+
+      setArticles(articlesWithState);
+      console.log('[App] Set', articlesWithState.length, 'articles,', readIds.size, 'already read');
     } catch (error) {
       console.log('[App] Failed to load articles:', error);
       setArticles([]);
     } finally {
       setArticlesLoading(false);
     }
-  }, []);
+  }, [preferences]);
 
   const addResource = useCallback(async (name: string, url: string) => {
     const newResource: NewsResource = {
@@ -351,9 +427,13 @@ export const [AppProvider, useApp] = createContextHook(() => {
     }
 
     await clearArticleCache();
+    // Also clear Supabase daily_articles so new sources are reflected
+    if (session?.user?.id) {
+      supabase.from('daily_articles').delete().eq('user_id', session.user.id).eq('date', getTodayKey()).then(() => {});
+    }
     console.log('[App] Added resource:', name, url);
     if (user?.interests && user.interests.length > 0) {
-      loadArticlesForUser(user.interests, user?.isPremium ?? false, updated);
+      loadArticlesForUser(user.interests, user?.isPremium ?? false, updated, session?.user?.id);
     }
   }, [resources, user, session, loadArticlesForUser]);
 
@@ -372,15 +452,18 @@ export const [AppProvider, useApp] = createContextHook(() => {
     }
 
     await clearArticleCache();
+    if (session?.user?.id) {
+      supabase.from('daily_articles').delete().eq('user_id', session.user.id).eq('date', getTodayKey()).then(() => {});
+    }
     console.log('[App] Removed resource:', id);
     if (user?.interests && user.interests.length > 0) {
-      loadArticlesForUser(user.interests, user?.isPremium ?? false, updated);
+      loadArticlesForUser(user.interests, user?.isPremium ?? false, updated, session?.user?.id);
     }
-  }, [resources, user, loadArticlesForUser]);
+  }, [resources, user, session, loadArticlesForUser]);
 
   useEffect(() => {
     if (resourcesLoaded && user && isOnboarded && user.interests.length > 0) {
-      loadArticlesForUser(user.interests, user.isPremium, resources);
+      loadArticlesForUser(user.interests, user.isPremium, resources, user.id);
     }
   }, [user?.id, isOnboarded, resourcesLoaded]);
 
@@ -623,6 +706,14 @@ export const [AppProvider, useApp] = createContextHook(() => {
   const markArticleRead = useCallback((articleId: string) => {
     setArticles(prev => prev.map(a => a.id === articleId ? { ...a, isRead: true } : a));
     setTodayReadsCompleted(prev => prev + 1);
+    // Persist read state so it survives app restarts
+    const today = getTodayKey();
+    AsyncStorage.getItem(READ_IDS_KEY(today)).then(raw => {
+      const ids: string[] = raw ? JSON.parse(raw) : [];
+      if (!ids.includes(articleId)) {
+        AsyncStorage.setItem(READ_IDS_KEY(today), JSON.stringify([...ids, articleId])).catch(() => {});
+      }
+    }).catch(() => {});
     onArticleRead().then(updated => {
       if (user && session?.user?.id) {
         const newTotal = user.totalArticlesRead + 1;
@@ -801,7 +892,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     const existing = insights.find(i => i.articleId === articleId);
     if (existing) {
       console.log('[App] Insight already exists for article:', articleId);
-      return;
+      return existing;
     }
 
     const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
@@ -878,6 +969,7 @@ Respond in this exact JSON format:
         return updated;
       });
       console.log('[App] Generated insight for article:', article.title);
+      return newInsight;
     } catch (error) {
       console.log('[App] Failed to generate insight:', error);
     } finally {

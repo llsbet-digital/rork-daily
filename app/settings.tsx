@@ -142,6 +142,9 @@ export default function SettingsScreen() {
                 <Pencil size={14} color={Colors.textSecondary} />
               </TouchableOpacity>
             )}
+            {user?.email ? (
+              <Text style={styles.profileEmail}>{user.email}</Text>
+            ) : null}
             <Text style={styles.profilePlan}>{user?.isPremium ? 'Premium' : 'Free'}</Text>
           </View>
         </View>
@@ -336,9 +339,14 @@ const styles = StyleSheet.create({
     color: Colors.text,
     marginBottom: 2,
   },
-  profilePlan: {
-    fontSize: 14,
+  profileEmail: {
+    fontSize: 13,
     color: Colors.textSecondary,
+    marginBottom: 2,
+  },
+  profilePlan: {
+    fontSize: 13,
+    color: Colors.textMuted,
   },
   sectionLabel: {
     fontSize: 11,

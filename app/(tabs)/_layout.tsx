@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { BookOpen, StickyNote, Bookmark } from 'lucide-react-native';
+import { Home, Bookmark, StickyNote } from 'lucide-react-native';
 import React from 'react';
 import Colors from '@/constants/colors';
 
@@ -25,14 +25,13 @@ export default function TabLayout() {
         name="(today)"
         options={{
           title: 'Today',
-          tabBarIcon: ({ color, size }) => <BookOpen size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="insights"
         options={{
-          title: 'Insights',
-          tabBarIcon: ({ color, size }) => <StickyNote size={size} color={color} />,
+          href: null,
         }}
       />
       <Tabs.Screen
