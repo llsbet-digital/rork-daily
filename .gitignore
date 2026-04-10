@@ -45,3 +45,5 @@ rork-eslint.config.js
 core
 node_modules
 .expo
+temp_auto_push.bat
+temp_interactive_push.bat
