@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "app.rork.paprr",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "infoPlist": {
         "NSCameraUsageDescription": "Allow Paprr to access your camera to update your profile photo.",
         "NSPhotoLibraryUsageDescription": "Allow Paprr to access your photo library to update your profile photo.",
