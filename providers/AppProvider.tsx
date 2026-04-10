@@ -385,7 +385,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
   }, [user?.id, isOnboarded, resourcesLoaded]);
 
   const maxDailyReads = user?.isPremium ? 5 : 3;
-  const maxDailySaves = user?.isPremium ? 3 : 1;
+  const maxDailySaves = user?.isPremium ? Infinity : 1;
 
   // Derived from Supabase saved_articles — works cross-device
   const savedArticleIds = useMemo(
@@ -695,7 +695,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
       Alert.alert(
         'Daily Save Limit',
         user?.isPremium
-          ? `You've saved ${maxDailySaves} articles today. Come back tomorrow for more!`
+          ? `You've reached your save limit for today. Come back tomorrow for more!`
           : `Free accounts can save ${maxDailySaves} article per day. Upgrade to Premium for more saves!`,
         user?.isPremium ? [{ text: 'OK' }] : [
           { text: 'Maybe Later', style: 'cancel' },
