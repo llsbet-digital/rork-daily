@@ -23,6 +23,23 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
+export async function clearSupabaseAuthStorage(): Promise<void> {
+  try {
+    const projectRef = supabaseUrl.replace(/^https?:\/\//, '').split('.')[0];
+    const candidates = [
+      `sb-${projectRef}-auth-token`,
+      `sb-${projectRef}-auth-token-code-verifier`,
+      'supabase.auth.token',
+    ];
+    await Promise.all(
+      candidates.map((k) => SecureStore.deleteItemAsync(k).catch(() => {}))
+    );
+    console.log('[Supabase] Cleared stale auth storage');
+  } catch (e) {
+    console.log('[Supabase] Failed to clear auth storage:', e);
+  }
+}
+
 export type UserProfile = {
   id: string;
   email: string;

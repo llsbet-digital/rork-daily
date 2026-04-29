@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import createContextHook from '@nkzw/create-context-hook';
 import { User, Article, ArticleInsight, NewsResource, UserPreferences } from '@/types';
 import { fetchDailyArticles, fetchAdditionalArticles, clearArticleCache } from '@/lib/articles';
-import { supabase, UserProfile } from '@/lib/supabase';
+import { supabase, clearSupabaseAuthStorage, UserProfile } from '@/lib/supabase';
 import { Session } from '@supabase/supabase-js';
 import { configureRevenueCat, getCustomerInfo, checkEntitlement, loginRC, logoutRC } from '@/lib/revenuecat';
 import { useStreak } from '@/hooks/useStreak';
@@ -70,10 +70,13 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
   useEffect(() => {
     console.log('[App] Initializing Supabase auth listener');
-    supabase.auth.getSession().then(({ data: { session: s }, error }) => {
+    supabase.auth.getSession().then(async ({ data: { session: s }, error }) => {
       if (error) {
         console.log('[App] getSession error:', error.message);
-        supabase.auth.signOut().catch(() => {});
+        if (error.message?.includes('Refresh Token') || error.message?.includes('JWT')) {
+          await clearSupabaseAuthStorage();
+        }
+        await supabase.auth.signOut().catch(() => {});
         setSession(null);
         setUser(null);
         setIsAuthenticated(false);
@@ -86,9 +89,17 @@ export const [AppProvider, useApp] = createContextHook(() => {
       if (!s) {
         setIsLoading(false);
       }
-    }).catch((err) => {
+    }).catch(async (err) => {
       console.log('[App] getSession unexpected error:', err);
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('Refresh Token') || msg.includes('JWT')) {
+        await clearSupabaseAuthStorage();
+        await supabase.auth.signOut().catch(() => {});
+      }
       setSession(null);
+      setUser(null);
+      setIsAuthenticated(false);
+      setIsOnboarded(false);
       setIsLoading(false);
     });
 
@@ -96,7 +107,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
       console.log('[App] Auth state changed:', _event, s?.user?.id ?? 'none');
 
       if (_event === 'TOKEN_REFRESHED' && !s) {
-        console.log('[App] Token refresh failed, signing out');
+        console.log('[App] Token refresh failed, clearing storage and signing out');
+        clearSupabaseAuthStorage().catch(() => {});
         supabase.auth.signOut().catch(() => {});
       }
 
@@ -135,7 +147,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
       if (error) {
         console.log('[App] Profile fetch error:', error.message);
         if (error.message?.includes('Refresh Token') || error.message?.includes('JWT')) {
-          console.log('[App] Auth token invalid, signing out');
+          console.log('[App] Auth token invalid, clearing storage and signing out');
+          await clearSupabaseAuthStorage();
           await supabase.auth.signOut().catch(() => {});
           return null;
         }
