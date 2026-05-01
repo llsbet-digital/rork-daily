@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useEffect } from 'react';
+import React, { useCallback, useRef, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Animated,
   Linking,
+  ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,6 +16,7 @@ import * as Haptics from 'expo-haptics';
 
 import Colors from '@/constants/colors';
 import { useApp } from '@/providers/AppProvider';
+import { fetchArticleContent } from '@/lib/fetchArticleContent';
 
 const ACCENT_COLORS = ['#E8DFF5', '#F5E6D3', '#E5F1F0', '#FCF4E9'] as const;
 
@@ -27,11 +29,23 @@ export default function ArticleScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
 
+  const [fullContent, setFullContent] = useState<string | null>(null);
+  const [fetchingContent, setFetchingContent] = useState(false);
+
   const article = [...dailyArticles, ...(savedArticles || [])].find(a => a.id === id);
 
   useEffect(() => {
     if (article) {
       markArticleRead(article.id);
+
+      if (article.url && article.url !== '#') {
+        setFetchingContent(true);
+        fetchArticleContent(article.url)
+          .then(text => {
+            if (text) setFullContent(text);
+          })
+          .finally(() => setFetchingContent(false));
+      }
     }
     Animated.parallel([
       Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
@@ -75,9 +89,10 @@ export default function ArticleScreen() {
   const colorIndex = dailyArticles.findIndex(a => a.id === article.id);
   const accentColor = ACCENT_COLORS[(colorIndex >= 0 ? colorIndex : 0) % ACCENT_COLORS.length];
 
-  const paragraphs = article.content
-    ? article.content.split(/\n\n|\n/).filter(p => p.trim().length > 0)
-    : [];
+  const displayContent = fullContent ?? article.content ?? article.summary ?? '';
+  const paragraphs = displayContent
+    .split(/\n\n|\n/)
+    .filter(p => p.trim().length > 0);
 
   return (
     <View style={styles.container}>
@@ -122,16 +137,12 @@ export default function ArticleScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Animated.View style={{ opacity: fadeAnim }}>
-          <Text style={styles.summaryText}>{article.summary}</Text>
+          {paragraphs.map((paragraph, idx) => (
+            <Text key={idx} style={idx === 0 ? styles.leadText : styles.bodyText}>{paragraph}</Text>
+          ))}
 
-          <View style={styles.divider} />
-
-          {paragraphs.length > 0 ? (
-            paragraphs.map((paragraph, idx) => (
-              <Text key={idx} style={styles.bodyText}>{paragraph}</Text>
-            ))
-          ) : (
-            <Text style={styles.bodyText}>{article.summary}</Text>
+          {fetchingContent && !fullContent && (
+            <ActivityIndicator size="small" color={Colors.textSecondary} style={styles.loader} />
           )}
 
           {article.url && article.url !== '#' && (
@@ -234,23 +245,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
     paddingTop: 24,
   },
-  summaryText: {
+  leadText: {
     fontSize: 17,
     fontWeight: '500' as const,
     color: Colors.text,
-    lineHeight: 26,
+    lineHeight: 27,
     letterSpacing: -0.1,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: 'rgba(0,0,0,0.08)',
-    marginVertical: 22,
+    marginBottom: 18,
   },
   bodyText: {
     fontSize: 16,
     color: 'rgba(26,26,26,0.82)',
     lineHeight: 26,
     marginBottom: 18,
+  },
+  loader: {
+    marginVertical: 16,
   },
   sourceButton: {
     flexDirection: 'row',

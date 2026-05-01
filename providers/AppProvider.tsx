@@ -660,10 +660,23 @@ export const [AppProvider, useApp] = createContextHook(() => {
       console.log('[App] User upgraded to premium, fetching 2 additional articles');
       const additional = await fetchAdditionalArticles(user.interests, 2, articles, resources, preferences);
       if (additional.length > 0) {
-        setArticles(prev => [...prev, ...additional]);
+        const combined = [...articles, ...additional];
+        setArticles(combined);
+        // Persist combined 5 articles to Supabase so they survive reload
+        if (session?.user?.id) {
+          const today = getTodayKey();
+          supabase.from('daily_articles').upsert({
+            user_id: session.user.id,
+            date: today,
+            articles: combined.map(a => ({ ...a, isRead: false, isSaved: false })),
+          }).then(({ error }) => {
+            if (error) console.log('[App] Failed to persist premium articles to Supabase:', error.message);
+            else console.log('[App] Persisted', combined.length, 'articles to Supabase after upgrade');
+          });
+        }
       }
     }
-  }, [session, refreshCustomerInfo, user, articles]);
+  }, [session, refreshCustomerInfo, user, articles, resources, preferences]);
 
   const feedbackArticle = useCallback(async (articleId: string, feedback: 'up' | 'down') => {
     const toggle = (current: 'up' | 'down' | null) => current === feedback ? null : feedback;
@@ -1066,9 +1079,10 @@ Respond in this exact JSON format:
 
     setUser(prev => prev ? { ...prev, interests } : null);
     await clearArticleCache();
-    loadArticlesForUser(interests, user.isPremium, resources);
+    supabase.from('daily_articles').delete().eq('user_id', session.user.id).eq('date', getTodayKey()).then(() => {});
+    loadArticlesForUser(interests, user.isPremium, resources, session.user.id);
     queryClient.invalidateQueries({ queryKey: ['profile'] });
-  }, [user, session, queryClient, loadArticlesForUser]);
+  }, [user, session, queryClient, loadArticlesForUser, resources]);
 
   const savedArticles = useMemo(() => libraryArticles, [libraryArticles]);
 

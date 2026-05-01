@@ -4,14 +4,84 @@ import { Article, NewsResource, UserPreferences } from '@/types';
 const DAILY_ARTICLES_KEY = 'daily_articles_cache';
 const DAILY_DATE_KEY = 'daily_articles_date';
 const DAILY_RESOURCES_KEY = 'daily_articles_resources_hash';
+const ARTICLE_HISTORY_KEY = 'article_url_history';
+
+// Rolling history cap — enough to cover ~30 days at 5 articles/day
+const HISTORY_CAP = 200;
 
 function getTodayDateString(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 }
 
+// --- Article history (cross-day deduplication) ---
+
+async function loadArticleHistory(): Promise<string[]> {
+  try {
+    const raw = await AsyncStorage.getItem(ARTICLE_HISTORY_KEY);
+    return raw ? (JSON.parse(raw) as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+async function appendToArticleHistory(urls: string[]): Promise<void> {
+  try {
+    const existing = await loadArticleHistory();
+    const combined = [...existing, ...urls.filter(u => !existing.includes(u))];
+    const trimmed = combined.slice(-HISTORY_CAP);
+    await AsyncStorage.setItem(ARTICLE_HISTORY_KEY, JSON.stringify(trimmed));
+    console.log('[Articles] History updated — total seen URLs:', trimmed.length);
+  } catch (e) {
+    console.log('[Articles] Failed to update article history:', e);
+  }
+}
+
+// --- Title similarity (same-story deduplication) ---
+
+const STOP_WORDS = new Set([
+  'a','an','the','and','or','but','in','on','at','to','for','of','with',
+  'by','from','is','are','was','were','be','been','has','have','had',
+  'it','its','this','that','these','those','as','not','what','how','why',
+  'when','where','who','will','would','could','should','may','might',
+]);
+
+function titleTokens(title: string): Set<string> {
+  return new Set(
+    title
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, '')
+      .split(/\s+/)
+      .filter(w => w.length > 2 && !STOP_WORDS.has(w))
+  );
+}
+
+function titleSimilarity(a: string, b: string): number {
+  const ta = titleTokens(a);
+  const tb = titleTokens(b);
+  if (ta.size === 0 || tb.size === 0) return 0;
+  let intersection = 0;
+  for (const w of ta) if (tb.has(w)) intersection++;
+  return intersection / Math.max(ta.size, tb.size);
+}
+
+/** Remove articles whose titles are too similar to an already-kept article. */
+function deduplicateByTitle(articles: Article[], threshold = 0.5): Article[] {
+  const kept: Article[] = [];
+  for (const candidate of articles) {
+    const isDuplicate = kept.some(k => titleSimilarity(k.title, candidate.title) >= threshold);
+    if (!isDuplicate) {
+      kept.push(candidate);
+    } else {
+      console.log('[Articles] Dropped similar-title article:', candidate.title);
+    }
+  }
+  return kept;
+}
+
+// --- Interest distribution ---
+
 function buildInterestDistribution(interests: string[], count: number, preferences?: UserPreferences): string[] {
-  // Weight each topic by net positive feedback (up - down), minimum weight 1
   const weights = interests.map(topic => {
     const pref = preferences?.topics[topic.toLowerCase()];
     if (!pref) return 1;
@@ -19,23 +89,19 @@ function buildInterestDistribution(interests: string[], count: number, preferenc
   });
   const totalWeight = weights.reduce((s, w) => s + w, 0);
 
-  // Allocate slots proportionally, ensuring every interest gets at least 1
   const slots: string[] = [];
   const allocations = weights.map((w, i) => ({
     topic: interests[i],
     count: Math.max(1, Math.round((w / totalWeight) * count)),
   }));
 
-  // Trim or pad to hit exact count
   let total = allocations.reduce((s, a) => s + a.count, 0);
   while (total > count) {
-    // Remove from lowest-weight topics first
     const idx = allocations.reduce((minIdx, a, i) => a.count > 1 && weights[i] <= weights[minIdx] ? i : minIdx, 0);
     allocations[idx].count--;
     total--;
   }
   while (total < count) {
-    // Add to highest-weight topics first
     const idx = allocations.reduce((maxIdx, _a, i) => weights[i] > weights[maxIdx] ? i : maxIdx, 0);
     allocations[idx].count++;
     total++;
@@ -45,7 +111,6 @@ function buildInterestDistribution(interests: string[], count: number, preferenc
     for (let i = 0; i < n; i++) slots.push(topic);
   }
 
-  // Shuffle
   for (let i = slots.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [slots[i], slots[j]] = [slots[j], slots[i]];
@@ -71,11 +136,17 @@ function buildPreferenceSummary(interests: string[], preferences?: UserPreferenc
   return lines.join('\n');
 }
 
-async function searchArticlesWithOpenAI(interests: string[], count: number, resources?: NewsResource[], preferences?: UserPreferences): Promise<Article[]> {
+// --- OpenAI fetch ---
+
+async function searchArticlesWithOpenAI(
+  interests: string[],
+  count: number,
+  resources?: NewsResource[],
+  preferences?: UserPreferences,
+  seenUrls: string[] = [],
+): Promise<Article[]> {
   const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error('OpenAI API key not configured');
-  }
+  if (!apiKey) throw new Error('OpenAI API key not configured');
 
   if (!resources || resources.length === 0) {
     console.log('[Articles] No user sources configured — returning empty');
@@ -98,41 +169,49 @@ async function searchArticlesWithOpenAI(interests: string[], count: number, reso
   const domainList = allowedDomains.join(', ');
   const interestList = interests.join(', ');
 
-  const prompt = `You are a search assistant. Your job is to find EXACTLY ${count} real articles that exist on specific websites.
+  const seenBlock = seenUrls.length > 0
+    ? `\nPREVIOUSLY SHOWN — do NOT return any article at these URLs, or any article covering the same story:\n${seenUrls.map(u => `- ${u}`).join('\n')}\n`
+    : '';
+
+  const prompt = `You are a senior news editor curating a personalised daily briefing. Find EXACTLY ${count} high-quality, recent articles from specific websites.
 
 ALLOWED SOURCES (domains): ${domainList}
 USER'S TOPICS OF INTEREST: ${interestList}
-${prefSummary ? `\n${prefSummary}\n` : ''}
+${prefSummary ? `\n${prefSummary}\n` : ''}${seenBlock}
+QUALITY STANDARDS:
+- Only return articles published within the last 7 days. Prefer today or yesterday.
+- Prioritise original reporting, in-depth analysis, and exclusive insights over wire re-runs or press release rewrites.
+- Prefer articles with substance: data, expert quotes, original research, or investigative work.
+- Skip opinion pieces unless they are from a named expert with clear credentials.
 
-DIVERSITY RULES — these are the most important rules:
-- Every article MUST cover a distinctly different subject, angle, or story. No two articles can be about the same topic or event.
-- Do NOT return multiple articles that all explain the same concept (e.g. "what is X", "intro to X", "X explained"). Each article must stand on its own as a unique piece of news, analysis, or insight.
-- Spread across as many different topics as possible. If the user has multiple interests, pick one article per interest before repeating any interest.
-- If an interest has no recent articles on the allowed sources, skip it and pick a different topic — never pad with similar-subject articles to hit the count.
+DIVERSITY RULES — strictly enforced:
+- Every article MUST cover a distinctly different subject, angle, or story. No two articles can be about the same event or topic.
+- Do NOT return articles with similar titles or that cover the same news story from different angles.
+- Spread across as many different topics and domains as possible.
+- If a topic has no new qualifying articles, pick a different topic rather than padding with low-quality or repetitive content.
 
 INSTRUCTIONS:
-1. Search each allowed domain for recent articles matching the user's topics of interest.
+1. Search each allowed domain for recent articles matching the user's interests.
 2. ONLY return articles that actually exist on the allowed domains. Do NOT use any other websites.
-3. If a topic is NOT covered by any of the allowed sources, find articles on a different covered topic instead. Never search outside the allowed domains.
-4. Spread articles across all allowed domains when possible, but multiple articles from one domain are fine if sources are limited.
-5. You MUST return EXACTLY ${count} articles. Use the diversity rules above to fill the count without repeating subjects.
-6. Every article URL MUST start with https:// and belong to one of: ${domainList}
-7. NEVER fabricate URLs. Only return articles you found via web search that actually exist.
-8. NEVER return a URL from any domain not listed above.
+3. You MUST return EXACTLY ${count} articles.
+4. Every article URL MUST start with https:// and belong to one of: ${domainList}
+5. NEVER fabricate URLs. Only return articles you found via web search.
+6. NEVER return a URL from any domain not listed above.
+7. NEVER return any article from the "PREVIOUSLY SHOWN" list above.
 
 For each article provide:
 - title: the exact article title as it appears on the site
 - url: the full URL (MUST be on one of: ${domainList})
 - source: the site name
 - summary: 1-2 sentence summary
-- content: detailed article body (4-8 paragraphs), well-written with analysis and insights. Use line breaks between paragraphs.
-- category: the topic in UPPERCASE (use the actual topic the article covers)
+- content: the complete full-length article text — reproduce as much of the original article as possible, including all sections, key quotes, statistics, data points, context, and analysis. Aim for 12-20+ paragraphs. Use double line breaks between paragraphs.
+- category: the topic in UPPERCASE
 - readTime: estimated reading time in minutes (3-15)
 
 Respond with ONLY valid JSON, no markdown:
 {"articles":[{"title":"...","url":"https://...","source":"...","summary":"...","content":"...","category":"TOPIC","readTime":5}]}`;
 
-  console.log('[Articles] Calling OpenAI Responses API with web search...');
+  console.log('[Articles] Calling OpenAI (gpt-4o) with', seenUrls.length, 'excluded URLs...');
 
   let response: Response;
   try {
@@ -143,7 +222,7 @@ Respond with ONLY valid JSON, no markdown:
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o',
         tools: [{ type: 'web_search_preview' }],
         input: prompt,
       }),
@@ -230,17 +309,22 @@ Respond with ONLY valid JSON, no markdown:
     'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=400&h=300&fit=crop',
   ];
 
+  const seenUrlSet = new Set(seenUrls);
+
   const articles: Article[] = data.articles
     .filter(a => {
       if (!a.title || !a.url || !a.url.startsWith('http')) return false;
-      // Enforce domain restriction: reject articles not from the user's sources
+      // Reject previously seen URLs
+      if (seenUrlSet.has(a.url)) {
+        console.log('[Articles] Filtered out previously seen:', a.url);
+        return false;
+      }
+      // Enforce domain restriction
       if (allowedDomains.length > 0) {
         try {
           const articleHost = new URL(a.url).hostname.replace(/^www\./, '');
           const allowed = allowedDomains.some(d => articleHost === d || articleHost.endsWith(`.${d}`));
-          if (!allowed) {
-            console.log('[Articles] Filtered out off-domain article:', articleHost, a.url);
-          }
+          if (!allowed) console.log('[Articles] Filtered out off-domain article:', articleHost, a.url);
           return allowed;
         } catch {
           return false;
@@ -264,10 +348,12 @@ Respond with ONLY valid JSON, no markdown:
       isSaved: false,
     }));
 
-  console.log('[Articles] Parsed', articles.length, 'articles with real URLs, requested', count);
+  console.log('[Articles] Parsed', articles.length, 'articles, requested', count);
   articles.forEach(a => console.log('[Articles]  -', a.source, ':', a.category, ':', a.url));
   return articles;
 }
+
+// --- Domain helpers ---
 
 function getResourcesHash(resources?: NewsResource[]): string {
   if (!resources || resources.length === 0) return 'none';
@@ -294,9 +380,7 @@ function filterArticlesByDomain(articles: Article[], resources?: NewsResource[])
     try {
       const articleHost = new URL(a.url).hostname.replace(/^www\./, '');
       const allowed = domains.some(d => articleHost === d || articleHost.endsWith(`.${d}`));
-      if (!allowed) {
-        console.log('[Articles] Domain filter removed:', articleHost, a.url);
-      }
+      if (!allowed) console.log('[Articles] Domain filter removed:', articleHost, a.url);
       return allowed;
     } catch {
       return false;
@@ -304,10 +388,18 @@ function filterArticlesByDomain(articles: Article[], resources?: NewsResource[])
   });
 }
 
-export async function fetchDailyArticles(interests: string[], count: number, resources?: NewsResource[], preferences?: UserPreferences): Promise<Article[]> {
+// --- Public API ---
+
+export async function fetchDailyArticles(
+  interests: string[],
+  count: number,
+  resources?: NewsResource[],
+  preferences?: UserPreferences,
+): Promise<Article[]> {
   const today = getTodayDateString();
   const currentHash = getResourcesHash(resources);
 
+  // Return today's cache if still valid
   try {
     const cachedDate = await AsyncStorage.getItem(DAILY_DATE_KEY);
     const cachedArticles = await AsyncStorage.getItem(DAILY_ARTICLES_KEY);
@@ -328,7 +420,11 @@ export async function fetchDailyArticles(interests: string[], count: number, res
     console.log('[Articles] Cache read error:', e);
   }
 
-  console.log('[Articles] Fetching new articles for interests:', interests, 'count:', count, 'resources:', resources?.length ?? 0);
+  // Load cross-day history for deduplication
+  const seenUrls = await loadArticleHistory();
+  console.log('[Articles] Loaded', seenUrls.length, 'previously seen URLs to exclude');
+
+  console.log('[Articles] Fetching new articles — interests:', interests, 'count:', count, 'sources:', resources?.length ?? 0);
 
   let articles: Article[] = [];
   const MAX_RETRIES = 3;
@@ -339,13 +435,22 @@ export async function fetchDailyArticles(interests: string[], count: number, res
 
     console.log('[Articles] Attempt', attempt, '/', MAX_RETRIES, '— need', needed, 'more articles');
     try {
-      const fetched = await searchArticlesWithOpenAI(interests, needed, resources, preferences);
-      const existingIds = new Set(articles.map(a => a.url));
-      const deduped = fetched.filter(a => !existingIds.has(a.url));
-      const reindexed = deduped.map((a, i) => ({
+      // Exclude both history and URLs already collected this run
+      const excludeUrls = [...seenUrls, ...articles.map(a => a.url)];
+      const fetched = await searchArticlesWithOpenAI(interests, needed, resources, preferences, excludeUrls);
+
+      // Deduplicate by URL against what we already have
+      const existingUrls = new Set(articles.map(a => a.url));
+      const dedupedByUrl = fetched.filter(a => !existingUrls.has(a.url));
+
+      // Deduplicate by title similarity across everything collected so far
+      const dedupedByTitle = deduplicateByTitle([...articles, ...dedupedByUrl]).slice(articles.length);
+
+      const reindexed = dedupedByTitle.map((a, i) => ({
         ...a,
         id: `article-${today}-${articles.length + i}`,
       }));
+
       articles = [...articles, ...reindexed];
       console.log('[Articles] After attempt', attempt, '— total:', articles.length, '/', count);
 
@@ -359,33 +464,51 @@ export async function fetchDailyArticles(interests: string[], count: number, res
   }
 
   articles = articles.slice(0, count);
-
   articles = filterArticlesByDomain(articles, resources);
   articles = articles.slice(0, count);
   console.log('[Articles] After domain filter:', articles.length, 'articles');
 
   if (articles.length > 0) {
+    // Persist to cache
     await AsyncStorage.setItem(DAILY_ARTICLES_KEY, JSON.stringify(articles));
     await AsyncStorage.setItem(DAILY_DATE_KEY, today);
     await AsyncStorage.setItem(DAILY_RESOURCES_KEY, currentHash);
     console.log('[Articles] Cached', articles.length, 'articles for', today);
+
+    // Append to cross-day history
+    await appendToArticleHistory(articles.map(a => a.url));
   }
 
   return articles;
 }
 
-export async function fetchAdditionalArticles(interests: string[], additionalCount: number, existingArticles: Article[], resources?: NewsResource[], preferences?: UserPreferences): Promise<Article[]> {
+export async function fetchAdditionalArticles(
+  interests: string[],
+  additionalCount: number,
+  existingArticles: Article[],
+  resources?: NewsResource[],
+  preferences?: UserPreferences,
+): Promise<Article[]> {
   console.log('[Articles] Fetching', additionalCount, 'additional articles for upgrade');
   try {
-    const newArticles = await searchArticlesWithOpenAI(interests, additionalCount, resources, preferences);
+    const seenUrls = await loadArticleHistory();
+    const excludeUrls = [...seenUrls, ...existingArticles.map(a => a.url)];
+
+    const newArticles = await searchArticlesWithOpenAI(interests, additionalCount, resources, preferences, excludeUrls);
     const today = getTodayDateString();
-    const reindexed = newArticles.map((a, i) => ({
+
+    // Deduplicate against existing by title too
+    const dedupedByTitle = deduplicateByTitle([...existingArticles, ...newArticles]).slice(existingArticles.length);
+
+    const reindexed = dedupedByTitle.map((a, i) => ({
       ...a,
       id: `article-${today}-extra-${i}`,
     }));
+
     const combined = [...existingArticles, ...reindexed];
     await AsyncStorage.setItem(DAILY_ARTICLES_KEY, JSON.stringify(combined));
     await AsyncStorage.setItem(DAILY_DATE_KEY, today);
+    await appendToArticleHistory(reindexed.map(a => a.url));
     console.log('[Articles] Cached', combined.length, 'total articles after upgrade');
     return reindexed;
   } catch (e) {
@@ -393,7 +516,6 @@ export async function fetchAdditionalArticles(interests: string[], additionalCou
     return [];
   }
 }
-
 
 export async function clearArticleCache(): Promise<void> {
   await AsyncStorage.removeItem(DAILY_ARTICLES_KEY);

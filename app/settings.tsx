@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Alert,
   TextInput,
+  Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -26,6 +27,8 @@ import {
   Rss,
   Pencil,
   Check,
+  Shield,
+  ScrollText,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
@@ -247,6 +250,33 @@ export default function SettingsScreen() {
             <View style={styles.settingLeft}>
               <Trash2 size={20} color={Colors.error} />
               <Text style={[styles.settingText, styles.deleteText]}>Delete Account</Text>
+            </View>
+            <ChevronRight size={18} color={Colors.textMuted} />
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.sectionLabel}>LEGAL</Text>
+        <View style={styles.sectionCard}>
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={() => Linking.openURL('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.settingLeft}>
+              <ScrollText size={20} color={Colors.textSecondary} />
+              <Text style={styles.settingText}>Terms & Conditions</Text>
+            </View>
+            <ChevronRight size={18} color={Colors.textMuted} />
+          </TouchableOpacity>
+          <View style={styles.divider} />
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={() => Linking.openURL('https://handle-wallow-80755853.figma.site')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.settingLeft}>
+              <Shield size={20} color={Colors.textSecondary} />
+              <Text style={styles.settingText}>Privacy Policy</Text>
             </View>
             <ChevronRight size={18} color={Colors.textMuted} />
           </TouchableOpacity>

@@ -10,6 +10,7 @@ import {
   Alert,
   Animated,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'react-native';
@@ -276,6 +277,20 @@ export default function AuthScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+
+          {mode === 'signup' && (
+            <Text style={styles.legalText}>
+              By creating an account you agree to our{' '}
+              <Text style={styles.legalLink} onPress={() => Linking.openURL('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/')}>
+                Terms & Conditions
+              </Text>
+              {' '}and{' '}
+              <Text style={styles.legalLink} onPress={() => Linking.openURL('https://handle-wallow-80755853.figma.site')}>
+                Privacy Policy
+              </Text>
+              .
+            </Text>
+          )}
         </View>
       </Animated.View>
     </KeyboardAvoidingView>
@@ -385,6 +400,18 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#1A1A1A',
     fontWeight: '600' as const,
+  },
+  legalText: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginTop: 16,
+    paddingHorizontal: 8,
+  },
+  legalLink: {
+    color: Colors.textSecondary,
+    textDecorationLine: 'underline',
   },
   confirmContainer: {
     justifyContent: 'center',

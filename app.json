@@ -11,7 +11,7 @@
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#F5F5F5"
+      "backgroundColor": "#D8E857"
     },
     "ios": {
       "supportsTablet": false,
@@ -26,7 +26,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#F5F5F5"
+        "backgroundColor": "#D8E857"
       },
       "package": "app.rork.paprr",
       "versionCode": 1,
