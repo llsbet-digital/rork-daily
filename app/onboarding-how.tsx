@@ -18,7 +18,7 @@ const steps = [
   {
     number: '03',
     title: 'Save & Read Later',
-    description: 'Free users can save up to 5 articles per week. Premium unlocks unlimited saves and offline reading.'
+    description: 'Free users can save 1 article per day. Premium unlocks unlimited saves and offline reading.'
   },
 ];
 
